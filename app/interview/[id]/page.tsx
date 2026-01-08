@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   FileText,
   GitBranch,
   Scale,
@@ -23,7 +21,7 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "reac
 import { MermaidDiagram } from "@/components/mermaid-diagram";
 import { ChatContainer, Message } from "@/components/chat/chat-container";
 import { useInterview } from "@/hooks/use-interview";
-import { ArtifactType, DBArtifact } from "@/lib/db";
+import { ArtifactType, ArtifactData } from "@/app/actions/interview";
 import clsx from "clsx";
 
 interface InterviewPageProps {
@@ -76,7 +74,6 @@ const ARTIFACT_TYPES: {
 ];
 
 export default function InterviewPage({ params }: InterviewPageProps) {
-  const router = useRouter();
   const {
     interview,
     isLoading: isLoadingInterview,
@@ -121,7 +118,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
 
   // Check if an artifact is outdated (created before the last message)
   const isArtifactOutdated = useCallback(
-    (artifact: DBArtifact) => {
+    (artifact: ArtifactData) => {
       if (!lastMessageTime) return false;
       const artifactTime = new Date(artifact.createdAt).getTime();
       return artifactTime < lastMessageTime;
@@ -212,7 +209,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
 
   // Regenerate an outdated artifact
   const handleRegenerateArtifact = useCallback(
-    async (artifact: DBArtifact, e?: React.MouseEvent) => {
+    async (artifact: ArtifactData, e?: React.MouseEvent) => {
       e?.stopPropagation();
       // Delete old artifact
       if (selectedArtifactId === artifact.id) {
@@ -303,16 +300,8 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   // Chat panel
   const chatPanel = (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border px-6 py-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push("/")}
-            className="rounded-[6px] p-1.5 text-foreground-muted hover:bg-background-sidebar hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-base font-medium text-foreground">{title}</h1>
-        </div>
+      <div className="flex items-center border-b border-border px-6 py-3">
+        <h1 className="text-base font-medium text-foreground">{title}</h1>
       </div>
       <div className="flex-1 overflow-hidden">
         <ChatContainer
@@ -491,7 +480,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   })();
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-[calc(100vh-3.5rem)] bg-background">
       <PanelGroup orientation="horizontal" id="interview-panels" className="h-full">
         <Panel defaultSize={60} minSize={40} className="h-full">
           {chatPanel}
@@ -592,7 +581,7 @@ function ArtifactContent({
   artifact,
   onAskQuestion
 }: {
-  artifact: DBArtifact;
+  artifact: ArtifactData;
   onAskQuestion?: (question: string) => void;
 }) {
   if (!artifact.data) {

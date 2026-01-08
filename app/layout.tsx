@@ -6,6 +6,7 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,20 +14,40 @@ export const metadata: Metadata = {
   description: "Bridge the gap between domain experts and technical implementers",
 };
 
-function AuthButton() {
+function Navbar() {
   return (
-    <div className="fixed top-4 right-4 z-50">
-      <SignedOut>
-        <SignInButton mode="modal">
-          <button className="rounded-[8px] bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
-            Sign in
-          </button>
-        </SignInButton>
-      </SignedOut>
-      <SignedIn>
-        <UserButton afterSignOutUrl="/" />
-      </SignedIn>
-    </div>
+    <nav className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
+      <div className="flex items-center gap-6">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-lg font-semibold text-foreground">BridgeSpec</span>
+        </Link>
+        {/* Future nav items can go here */}
+      </div>
+      <div className="flex items-center gap-4">
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="rounded-[8px] bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
+              Sign in
+            </button>
+          </SignInButton>
+        </SignedOut>
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+        </SignedIn>
+      </div>
+    </nav>
+  );
+}
+
+function NavbarPlaceholder() {
+  return (
+    <nav className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
+      <div className="flex items-center gap-6">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-lg font-semibold text-foreground">BridgeSpec</span>
+        </Link>
+      </div>
+    </nav>
   );
 }
 
@@ -42,8 +63,9 @@ export default function RootLayout({
   if (!clerkPubKey) {
     return (
       <html lang="en">
-        <body className="min-h-screen bg-background antialiased">
-          {children}
+        <body className="min-h-screen bg-background antialiased flex flex-col">
+          <NavbarPlaceholder />
+          <main className="flex-1">{children}</main>
         </body>
       </html>
     );
@@ -52,9 +74,9 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body className="min-h-screen bg-background antialiased">
-          <AuthButton />
-          {children}
+        <body className="min-h-screen bg-background antialiased flex flex-col">
+          <Navbar />
+          <main className="flex-1">{children}</main>
         </body>
       </html>
     </ClerkProvider>
