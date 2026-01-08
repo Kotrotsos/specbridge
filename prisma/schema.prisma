@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Interview {
+  id                 String     @id @default(cuid())
+  userId             String?    // Clerk user ID (optional for now)
+  title              String
+  initialDescription String     @default("")
+  status             String     @default("in_progress") // in_progress, complete
+  extractedKnowledge Json?      // Legacy field
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  messages           Message[]
+  artifacts          Artifact[]
+
+  @@index([userId])
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  interviewId String
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  role        String    // assistant, user
+  content     String
+  timestamp   DateTime  @default(now())
+
+  @@index([interviewId])
+}
+
+model Artifact {
+  id          String    @id @default(cuid())
+  interviewId String
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  type        String    // overview, decision-tree, rules, variables, edge-cases
+  title       String
+  status      String    @default("generating") // generating, complete, error
+  data        Json?
+  error       String?
+  createdAt   DateTime  @default(now())
+
+  @@index([interviewId])
+}

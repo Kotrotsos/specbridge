@@ -2,14 +2,18 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  DBInterview,
-  DBMessage,
-  DBArtifact,
-  ArtifactType,
   getInterview,
   createInterview,
   updateInterview,
-} from "@/lib/db";
+  addMessage as addMessageAction,
+  upsertArtifact,
+  deleteArtifact as deleteArtifactAction,
+  InterviewData,
+  MessageData,
+  ArtifactData,
+  ArtifactType,
+  ArtifactStatus,
+} from "@/app/actions/interview";
 
 interface UseInterviewOptions {
   id: string;
@@ -17,32 +21,32 @@ interface UseInterviewOptions {
 }
 
 interface UseInterviewReturn {
-  interview: DBInterview | null;
+  interview: InterviewData | null;
   isLoading: boolean;
   error: Error | null;
-  addMessage: (message: Omit<DBMessage, "id">) => Promise<void>;
+  addMessage: (message: Omit<MessageData, "id" | "timestamp">) => Promise<void>;
   setTitle: (title: string) => Promise<void>;
   setInitialDescription: (description: string) => Promise<void>;
   setComplete: (knowledge: object | null) => Promise<void>;
-  addArtifact: (type: ArtifactType, title: string) => Promise<DBArtifact>;
-  updateArtifact: (artifactId: string, updates: Partial<DBArtifact>) => Promise<void>;
+  addArtifact: (type: ArtifactType, title: string) => Promise<ArtifactData>;
+  updateArtifact: (artifactId: string, updates: Partial<{ status: ArtifactStatus; data: Record<string, unknown> | null; error: string }>) => Promise<void>;
   deleteArtifact: (artifactId: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
 /**
- * Hook for managing a single interview with IndexedDB persistence
+ * Hook for managing a single interview with PostgreSQL persistence
  */
 export function useInterview({
   id,
   autoCreate = true,
 }: UseInterviewOptions): UseInterviewReturn {
-  const [interview, setInterview] = useState<DBInterview | null>(null);
+  const [interview, setInterview] = useState<InterviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   // Keep a ref to the latest interview for async operations
-  const interviewRef = useRef<DBInterview | null>(null);
+  const interviewRef = useRef<InterviewData | null>(null);
   useEffect(() => {
     interviewRef.current = interview;
   }, [interview]);
@@ -62,15 +66,7 @@ export function useInterview({
           title: "New Interview",
           initialDescription: "",
           status: "in_progress",
-          messages: [],
-          artifacts: [],
-          extractedKnowledge: null,
         });
-      }
-
-      // Migration: ensure artifacts array exists for older interviews
-      if (data && !data.artifacts) {
-        data = { ...data, artifacts: [] };
       }
 
       setInterview(data);
@@ -87,23 +83,26 @@ export function useInterview({
 
   // Add a message to the interview
   const addMessage = useCallback(
-    async (message: Omit<DBMessage, "id">) => {
+    async (message: Omit<MessageData, "id" | "timestamp">) => {
       if (!interview) return;
 
-      const newMessage: DBMessage = {
-        ...message,
-        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      };
+      const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-      const updatedMessages = [...interview.messages, newMessage];
-
-      const updated = await updateInterview(id, {
-        messages: updatedMessages,
+      const newMessage = await addMessageAction(id, {
+        id: messageId,
+        role: message.role,
+        content: message.content,
       });
 
-      if (updated) {
-        setInterview(updated);
-      }
+      // Optimistically update local state
+      setInterview((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...prev.messages, newMessage],
+          updatedAt: new Date().toISOString(),
+        };
+      });
     },
     [interview, id]
   );
@@ -156,48 +155,63 @@ export function useInterview({
 
   // Add a new artifact (starts in generating state)
   const addArtifact = useCallback(
-    async (type: ArtifactType, title: string): Promise<DBArtifact> => {
-      const newArtifact: DBArtifact = {
-        id: `artifact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    async (type: ArtifactType, title: string): Promise<ArtifactData> => {
+      const artifactId = `artifact-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+      const newArtifact = await upsertArtifact(id, {
+        id: artifactId,
         type,
         title,
         status: "generating",
         data: null,
-        createdAt: new Date().toISOString(),
-      };
-
-      const currentArtifacts = interview?.artifacts || [];
-      const updated = await updateInterview(id, {
-        artifacts: [...currentArtifacts, newArtifact],
       });
 
-      if (updated) {
-        setInterview(updated);
-      }
+      // Optimistically update local state
+      setInterview((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          artifacts: [...prev.artifacts, newArtifact],
+          updatedAt: new Date().toISOString(),
+        };
+      });
 
       return newArtifact;
     },
-    [interview, id]
+    [id]
   );
 
   // Update an existing artifact
   const updateArtifact = useCallback(
-    async (artifactId: string, updates: Partial<DBArtifact>) => {
+    async (artifactId: string, updates: Partial<{ status: ArtifactStatus; data: Record<string, unknown> | null; error: string }>) => {
       // Use ref to get latest interview state (avoids stale closure)
       const currentInterview = interviewRef.current;
       if (!currentInterview) return;
 
-      const updatedArtifacts = currentInterview.artifacts.map((a) =>
-        a.id === artifactId ? { ...a, ...updates } : a
-      );
+      // Find the existing artifact to get its type and title
+      const existingArtifact = currentInterview.artifacts.find((a) => a.id === artifactId);
+      if (!existingArtifact) return;
 
-      const updated = await updateInterview(id, {
-        artifacts: updatedArtifacts,
+      const updatedArtifact = await upsertArtifact(id, {
+        id: artifactId,
+        type: existingArtifact.type,
+        title: existingArtifact.title,
+        status: updates.status ?? existingArtifact.status,
+        data: updates.data ?? existingArtifact.data,
+        error: updates.error,
       });
 
-      if (updated) {
-        setInterview(updated);
-      }
+      // Update local state
+      setInterview((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          artifacts: prev.artifacts.map((a) =>
+            a.id === artifactId ? updatedArtifact : a
+          ),
+          updatedAt: new Date().toISOString(),
+        };
+      });
     },
     [id]
   );
@@ -208,19 +222,19 @@ export function useInterview({
       const currentInterview = interviewRef.current;
       if (!currentInterview) return;
 
-      const updatedArtifacts = currentInterview.artifacts.filter(
-        (a) => a.id !== artifactId
-      );
+      await deleteArtifactAction(artifactId);
 
-      const updated = await updateInterview(id, {
-        artifacts: updatedArtifacts,
+      // Update local state
+      setInterview((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          artifacts: prev.artifacts.filter((a) => a.id !== artifactId),
+          updatedAt: new Date().toISOString(),
+        };
       });
-
-      if (updated) {
-        setInterview(updated);
-      }
     },
-    [id]
+    []
   );
 
   return {

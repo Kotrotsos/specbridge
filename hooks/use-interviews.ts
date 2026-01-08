@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  DBInterview,
   getAllInterviews,
-  deleteInterview as dbDeleteInterview,
-} from "@/lib/db";
+  deleteInterview as deleteInterviewAction,
+  InterviewData,
+} from "@/app/actions/interview";
 
 interface UseInterviewsReturn {
-  interviews: DBInterview[];
+  interviews: InterviewData[];
   isLoading: boolean;
   error: Error | null;
   deleteInterview: (id: string) => Promise<void>;
@@ -19,7 +19,7 @@ interface UseInterviewsReturn {
  * Hook for managing the list of all interviews
  */
 export function useInterviews(): UseInterviewsReturn {
-  const [interviews, setInterviews] = useState<DBInterview[]>([]);
+  const [interviews, setInterviews] = useState<InterviewData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -46,7 +46,7 @@ export function useInterviews(): UseInterviewsReturn {
   const deleteInterview = useCallback(
     async (id: string) => {
       try {
-        await dbDeleteInterview(id);
+        await deleteInterviewAction(id);
         setInterviews((prev) => prev.filter((i) => i.id !== id));
       } catch (err) {
         setError(

@@ -135,7 +135,6 @@ export default function InterviewPage({ params }: InterviewPageProps) {
       await addMessage({
         role: "assistant",
         content: question,
-        timestamp: new Date().toISOString(),
       });
       // Go back to list view so user can see the chat
       setSelectedArtifactId(null);
@@ -239,7 +238,6 @@ export default function InterviewPage({ params }: InterviewPageProps) {
       await addMessage({
         role: "user",
         content,
-        timestamp: new Date().toISOString(),
       });
 
       setInputValue("");
@@ -272,14 +270,12 @@ export default function InterviewPage({ params }: InterviewPageProps) {
         await addMessage({
           role: "assistant",
           content: data.message,
-          timestamp: new Date().toISOString(),
         });
       } catch (error) {
         console.error("Error sending message:", error);
         await addMessage({
           role: "assistant",
           content: "Sorry, there was an error processing your response. Please try again.",
-          timestamp: new Date().toISOString(),
         });
       } finally {
         setIsSending(false);
