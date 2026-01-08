@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
 
         // Build the extraction prompt based on artifact type
         const transcript = messages
-          .map((m) => `${m.role === "assistant" ? "BridgeSpec" : "Expert"}: ${m.content}`)
+          .map((m) => `${m.role === "assistant" ? "SpecBridge" : "Expert"}: ${m.content}`)
           .join("\n\n");
 
         let systemPrompt: string;

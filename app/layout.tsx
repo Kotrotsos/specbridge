@@ -10,7 +10,7 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BridgeSpec",
+  title: "SpecBridge",
   description: "Bridge the gap between domain experts and technical implementers",
 };
 
@@ -19,7 +19,7 @@ function Navbar() {
     <nav className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-lg font-semibold text-foreground">BridgeSpec</span>
+          <span className="text-lg font-semibold text-foreground">SpecBridge</span>
         </Link>
         {/* Future nav items can go here */}
       </div>
@@ -44,7 +44,7 @@ function NavbarPlaceholder() {
     <nav className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-lg font-semibold text-foreground">BridgeSpec</span>
+          <span className="text-lg font-semibold text-foreground">SpecBridge</span>
         </Link>
       </div>
     </nav>

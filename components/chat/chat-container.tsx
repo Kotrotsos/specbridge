@@ -71,7 +71,7 @@ export function ChatContainer({
               <div className="flex justify-start">
                 <div className="rounded-[8px] bg-background-sidebar px-4 py-3">
                   <div className="mb-1 text-xs font-medium text-foreground-muted">
-                    BridgeSpec
+                    SpecBridge
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-foreground-muted" />

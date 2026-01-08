@@ -4,7 +4,7 @@
  * Edit this file to customize app-wide settings.
  */
 
-export const APP_NAME = "BridgeSpec";
+export const APP_NAME = "SpecBridge";
 
 export const APP_DESCRIPTION =
   "Bridge the gap between domain experts and technical implementers";

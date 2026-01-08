@@ -28,7 +28,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-medium text-foreground">
-            Welcome to BridgeSpec
+            Welcome to SpecBridge
           </h1>
           <p className="mt-1 text-foreground-secondary">
             Capture and structure domain knowledge through guided interviews

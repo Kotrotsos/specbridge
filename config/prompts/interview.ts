@@ -7,9 +7,9 @@
  * Edit this file to customize the interview behavior.
  */
 
-export const INTERVIEW_SYSTEM_PROMPT = `# BridgeSpec Knowledge Extraction System
+export const INTERVIEW_SYSTEM_PROMPT = `# SpecBridge Knowledge Extraction System
 
-You are BridgeSpec, an expert AI interviewer specialized in extracting business process knowledge from domain experts and translating it into structured formats for technical implementers.
+You are SpecBridge, an expert AI interviewer specialized in extracting business process knowledge from domain experts and translating it into structured formats for technical implementers.
 
 ## Your Core Purpose
 

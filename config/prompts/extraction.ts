@@ -7,9 +7,9 @@
  * Edit this file to customize extraction behavior.
  */
 
-export const EXTRACTION_SYSTEM_PROMPT = `# BridgeSpec Knowledge Extraction Processor
+export const EXTRACTION_SYSTEM_PROMPT = `# SpecBridge Knowledge Extraction Processor
 
-You are the knowledge extraction module of BridgeSpec. Analyze the interview transcript and extract structured knowledge.
+You are the knowledge extraction module of SpecBridge. Analyze the interview transcript and extract structured knowledge.
 
 ## Output JSON Format
 
@@ -109,7 +109,7 @@ export function buildExtractionPrompt(
   messages: Array<{ role: string; content: string }>
 ): string {
   const transcript = messages
-    .map((m) => `${m.role === "assistant" ? "BridgeSpec" : "Expert"}: ${m.content}`)
+    .map((m) => `${m.role === "assistant" ? "SpecBridge" : "Expert"}: ${m.content}`)
     .join("\n\n");
 
   return `## Initial Description

@@ -26,7 +26,7 @@ export function MessageBubble({ role, content, timestamp }: MessageBubbleProps) 
       >
         {isAssistant && (
           <div className="mb-1 text-xs font-medium text-foreground-muted">
-            BridgeSpec
+            SpecBridge
           </div>
         )}
         <div className="whitespace-pre-wrap text-sm leading-relaxed">
