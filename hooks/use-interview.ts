@@ -13,7 +13,7 @@ import {
   ArtifactData,
   ArtifactType,
   ArtifactStatus,
-} from "@/app/actions/interview";
+} from "@/app/actions/specifications";
 
 interface UseInterviewOptions {
   id: string;
@@ -107,12 +107,12 @@ export function useInterview({
     [interview, id]
   );
 
-  // Set the interview title
+  // Set the interview title/name
   const setTitle = useCallback(
     async (title: string) => {
       if (!interview) return;
 
-      const updated = await updateInterview(id, { title });
+      const updated = await updateInterview(id, { name: title });
       if (updated) {
         setInterview(updated);
       }
@@ -127,8 +127,8 @@ export function useInterview({
 
       const updated = await updateInterview(id, {
         initialDescription: description,
-        // Also update title if it's still the default
-        ...(interview.title === "New Interview" ? { title: description } : {}),
+        // Also update name if it's still the default
+        ...(interview.name === "New Interview" ? { name: description } : {}),
       });
       if (updated) {
         setInterview(updated);

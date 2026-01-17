@@ -31,7 +31,7 @@ export default function DashboardPage() {
             Welcome to SpecBridge
           </h1>
           <p className="mt-1 text-foreground-secondary">
-            Capture and structure domain knowledge through guided interviews
+            Organize your specifications into Projects and Features. Use the sidebar to navigate your hierarchy.
           </p>
         </div>
 
@@ -77,7 +77,7 @@ export default function DashboardPage() {
                         <FileText className="mt-0.5 h-5 w-5 text-foreground-muted" />
                         <div>
                           <CardTitle className="text-base">
-                            {interview.title || "Untitled Interview"}
+                            {interview.name || "Untitled Specification"}
                           </CardTitle>
                           <CardDescription className="mt-1 flex items-center gap-2">
                             <Clock className="h-3 w-3" />
@@ -90,11 +90,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`rounded-full px-3 py-1 text-xs ${
-                            interview.status === "complete"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
+                          className={`rounded-full px-3 py-1 text-xs ${interview.status === "complete"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                            }`}
                         >
                           {interview.status === "complete" ? "Complete" : "In Progress"}
                         </span>

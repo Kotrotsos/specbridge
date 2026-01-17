@@ -7,6 +7,7 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import Link from "next/link";
+import { ProjectSidebar } from "@/components/sidebar/project-sidebar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -65,7 +66,10 @@ export default function RootLayout({
       <html lang="en">
         <body className="min-h-screen bg-background antialiased flex flex-col">
           <NavbarPlaceholder />
-          <main className="flex-1">{children}</main>
+          <div className="flex-1 flex">
+            <ProjectSidebar />
+            <main className="flex-1 overflow-auto">{children}</main>
+          </div>
         </body>
       </html>
     );
@@ -76,7 +80,10 @@ export default function RootLayout({
       <html lang="en">
         <body className="min-h-screen bg-background antialiased flex flex-col">
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <div className="flex-1 flex">
+            <ProjectSidebar />
+            <main className="flex-1 overflow-auto">{children}</main>
+          </div>
         </body>
       </html>
     </ClerkProvider>

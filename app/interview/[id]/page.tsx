@@ -16,12 +16,14 @@ import {
   RefreshCw,
   Settings,
   X,
+  Pencil,
 } from "lucide-react";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
 import { ChatContainer, Message } from "@/components/chat/chat-container";
 import { useInterview } from "@/hooks/use-interview";
-import { ArtifactType, ArtifactData } from "@/app/actions/interview";
+import { ArtifactType, ArtifactData } from "@/app/actions/specifications";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import clsx from "clsx";
 
 interface InterviewPageProps {
@@ -36,42 +38,42 @@ const ARTIFACT_TYPES: {
   color: string;
   description: string;
 }[] = [
-  {
-    type: "overview",
-    label: "Overview",
-    icon: FileText,
-    color: "bg-blue-50 text-blue-700 border-blue-200",
-    description: "Process summary and steps",
-  },
-  {
-    type: "decision-tree",
-    label: "Visualize Diagram",
-    icon: GitBranch,
-    color: "bg-green-50 text-green-700 border-green-200",
-    description: "Visual flowchart",
-  },
-  {
-    type: "rules",
-    label: "Rules",
-    icon: Scale,
-    color: "bg-purple-50 text-purple-700 border-purple-200",
-    description: "Business rules",
-  },
-  {
-    type: "variables",
-    label: "Variables",
-    icon: Variable,
-    color: "bg-orange-50 text-orange-700 border-orange-200",
-    description: "Data and constraints",
-  },
-  {
-    type: "edge-cases",
-    label: "Edge Cases",
-    icon: AlertTriangle,
-    color: "bg-red-50 text-red-700 border-red-200",
-    description: "Exceptions and edge cases",
-  },
-];
+    {
+      type: "overview",
+      label: "Overview",
+      icon: FileText,
+      color: "bg-blue-50 text-blue-700 border-blue-200",
+      description: "Process summary and steps",
+    },
+    {
+      type: "decision-tree",
+      label: "Visualize Diagram",
+      icon: GitBranch,
+      color: "bg-green-50 text-green-700 border-green-200",
+      description: "Visual flowchart",
+    },
+    {
+      type: "rules",
+      label: "Rules",
+      icon: Scale,
+      color: "bg-purple-50 text-purple-700 border-purple-200",
+      description: "Business rules",
+    },
+    {
+      type: "variables",
+      label: "Variables",
+      icon: Variable,
+      color: "bg-orange-50 text-orange-700 border-orange-200",
+      description: "Data and constraints",
+    },
+    {
+      type: "edge-cases",
+      label: "Edge Cases",
+      icon: AlertTriangle,
+      color: "bg-red-50 text-red-700 border-red-200",
+      description: "Exceptions and edge cases",
+    },
+  ];
 
 export default function InterviewPage({ params }: InterviewPageProps) {
   const {
@@ -79,6 +81,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
     isLoading: isLoadingInterview,
     addMessage,
     setInitialDescription,
+    setTitle,
     addArtifact,
     updateArtifact,
     deleteArtifact,
@@ -88,6 +91,10 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   const [inputValue, setInputValue] = useState("");
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const generatingRef = useRef<Set<string>>(new Set());
+
+  // Title editing state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitleValue, setEditingTitleValue] = useState("");
 
   // Settings modal state
   const [settingsModalType, setSettingsModalType] = useState<ArtifactType | null>(null);
@@ -107,7 +114,32 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   const hasMessages = messages.length > 0;
   const artifacts = interview?.artifacts || [];
   const selectedArtifact = artifacts.find((a) => a.id === selectedArtifactId);
-  const title = interview?.title || "New Interview";
+  const title = interview?.name || "New Interview";
+
+  // Build breadcrumb items from hierarchy
+  const breadcrumbItems = useMemo(() => {
+    if (!interview?.feature) return [];
+    return [
+      { label: interview.feature.project.name, href: `/project/${interview.feature.project.id}` },
+      { label: interview.feature.name, href: `/feature/${interview.feature.id}` },
+      { label: title },
+    ];
+  }, [interview?.feature, title]);
+
+  // Handle title edit
+  const startEditingTitle = useCallback(() => {
+    setEditingTitleValue(title);
+    setIsEditingTitle(true);
+  }, [title]);
+
+  const saveTitle = useCallback(async () => {
+    if (!editingTitleValue.trim()) {
+      setIsEditingTitle(false);
+      return;
+    }
+    await setTitle(editingTitleValue.trim());
+    setIsEditingTitle(false);
+  }, [editingTitleValue, setTitle]);
 
   // Get the timestamp of the last message to check if artifacts are outdated
   const lastMessageTime = useMemo(() => {
@@ -300,8 +332,38 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   // Chat panel
   const chatPanel = (
     <div className="flex h-full flex-col">
-      <div className="flex items-center border-b border-border px-6 py-3">
-        <h1 className="text-base font-medium text-foreground">{title}</h1>
+      <div className="border-b border-border px-6 py-3">
+        {/* Breadcrumbs */}
+        {breadcrumbItems.length > 0 && (
+          <div className="mb-2">
+            <Breadcrumb items={breadcrumbItems} />
+          </div>
+        )}
+        {/* Editable Title */}
+        <div className="flex items-center gap-2">
+          {isEditingTitle ? (
+            <input
+              type="text"
+              value={editingTitleValue}
+              onChange={(e) => setEditingTitleValue(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveTitle();
+                if (e.key === "Escape") setIsEditingTitle(false);
+              }}
+              className="flex-1 text-lg font-medium text-foreground bg-transparent border-b-2 border-blue-500 outline-none px-0 py-0.5"
+              autoFocus
+            />
+          ) : (
+            <h1
+              onClick={startEditingTitle}
+              className="text-lg font-medium text-foreground cursor-pointer hover:text-blue-600 flex items-center gap-2 group"
+            >
+              {title}
+              <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400" />
+            </h1>
+          )}
+        </div>
       </div>
       <div className="flex-1 overflow-hidden">
         <ChatContainer
@@ -401,10 +463,10 @@ export default function InterviewPage({ params }: InterviewPageProps) {
                         {artifact.status === "generating"
                           ? "Generating..."
                           : artifact.status === "error"
-                          ? artifact.error || "Failed"
-                          : outdated
-                          ? "May be outdated"
-                          : new Date(artifact.createdAt).toLocaleTimeString()}
+                            ? artifact.error || "Failed"
+                            : outdated
+                              ? "May be outdated"
+                              : new Date(artifact.createdAt).toLocaleTimeString()}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">

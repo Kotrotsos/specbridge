@@ -7,44 +7,80 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model Interview {
+// Project: Top-level container for organizing features
+model Project {
+  id          String    @id @default(cuid())
+  userId      String?   // Clerk user ID (optional for now)
+  name        String
+  description String?
+  order       Int       @default(0)  // For manual sorting
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  features    Feature[]
+
+  @@index([userId])
+  @@index([userId, order])
+}
+
+// Feature: Functional area within a project
+model Feature {
+  id             String          @id @default(cuid())
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  order          Int             @default(0)  // For manual sorting
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  specifications Specification[]
+
+  @@index([projectId])
+  @@index([projectId, order])
+}
+
+// Specification: Individual knowledge extraction session (formerly Interview)
+model Specification {
   id                 String     @id @default(cuid())
-  userId             String?    // Clerk user ID (optional for now)
-  title              String
+  featureId          String
+  feature            Feature    @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  name               String
   initialDescription String     @default("")
   status             String     @default("in_progress") // in_progress, complete
-  extractedKnowledge Json?      // Legacy field
+  extractedKnowledge Json?
+  order              Int        @default(0)  // For manual sorting
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
   messages           Message[]
   artifacts          Artifact[]
 
-  @@index([userId])
+  @@index([featureId])
+  @@index([featureId, order])
 }
 
 model Message {
-  id          String    @id @default(cuid())
-  interviewId String
-  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  role        String    // assistant, user
-  content     String
-  timestamp   DateTime  @default(now())
+  id              String        @id @default(cuid())
+  specificationId String
+  specification   Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
+  role            String        // assistant, user
+  content         String
+  timestamp       DateTime      @default(now())
 
-  @@index([interviewId])
+  @@index([specificationId])
 }
 
 model Artifact {
-  id          String    @id @default(cuid())
-  interviewId String
-  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  type        String    // overview, decision-tree, rules, variables, edge-cases
-  title       String
-  status      String    @default("generating") // generating, complete, error
-  data        Json?
-  error       String?
-  createdAt   DateTime  @default(now())
+  id              String        @id @default(cuid())
+  specificationId String
+  specification   Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
+  type            String        // overview, decision-tree, rules, variables, edge-cases
+  title           String
+  status          String        @default("generating") // generating, complete, error
+  data            Json?
+  error           String?
+  createdAt       DateTime      @default(now())
 
-  @@index([interviewId])
+  @@index([specificationId])
 }

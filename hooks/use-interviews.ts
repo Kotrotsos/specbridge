@@ -5,7 +5,7 @@ import {
   getAllInterviews,
   deleteInterview as deleteInterviewAction,
   InterviewData,
-} from "@/app/actions/interview";
+} from "@/app/actions/specifications";
 
 interface UseInterviewsReturn {
   interviews: InterviewData[];
