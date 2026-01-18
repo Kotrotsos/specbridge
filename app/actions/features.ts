@@ -89,15 +89,24 @@ export async function createFeature(
         description?: string;
     }
 ): Promise<FeatureData> {
-    const { userId } = await auth();
+    const { userId, orgId } = await auth();
 
     if (!userId) {
         throw new Error("Unauthorized");
     }
 
-    // Check project ownership
+    // Check project ownership (must match current context: org or personal)
     const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project || project.userId !== userId) {
+    if (!project) {
+        throw new Error("Unauthorized");
+    }
+
+    // Verify access: either org matches or personal project matches user
+    const hasAccess = orgId
+        ? project.organizationId === orgId
+        : project.userId === userId && !project.organizationId;
+
+    if (!hasAccess) {
         throw new Error("Unauthorized");
     }
 
@@ -139,7 +148,7 @@ export async function updateFeature(
         description: string | null;
     }>
 ): Promise<FeatureData | null> {
-    const { userId } = await auth();
+    const { userId, orgId } = await auth();
 
     if (!userId) {
         throw new Error("Unauthorized");
@@ -151,8 +160,16 @@ export async function updateFeature(
         include: { project: true }
     });
 
-    // Safety check: ensure project exists and belongs to user
-    if (!existingFeature || !existingFeature.project || existingFeature.project.userId !== userId) {
+    if (!existingFeature || !existingFeature.project) {
+        throw new Error("Unauthorized");
+    }
+
+    // Verify access: either org matches or personal project matches user
+    const hasAccess = orgId
+        ? existingFeature.project.organizationId === orgId
+        : existingFeature.project.userId === userId && !existingFeature.project.organizationId;
+
+    if (!hasAccess) {
         throw new Error("Unauthorized");
     }
 
@@ -202,7 +219,7 @@ export async function updateFeature(
 
 // Delete a feature (cascades to specifications)
 export async function deleteFeature(id: string): Promise<void> {
-    const { userId } = await auth();
+    const { userId, orgId } = await auth();
 
     if (!userId) {
         throw new Error("Unauthorized");
@@ -214,7 +231,16 @@ export async function deleteFeature(id: string): Promise<void> {
         include: { project: true }
     });
 
-    if (!existingFeature || !existingFeature.project || existingFeature.project.userId !== userId) {
+    if (!existingFeature || !existingFeature.project) {
+        throw new Error("Unauthorized");
+    }
+
+    // Verify access: either org matches or personal project matches user
+    const hasAccess = orgId
+        ? existingFeature.project.organizationId === orgId
+        : existingFeature.project.userId === userId && !existingFeature.project.organizationId;
+
+    if (!hasAccess) {
         throw new Error("Unauthorized");
     }
 
@@ -229,7 +255,7 @@ export async function reorderFeatures(
     projectId: string,
     featureIds: string[]
 ): Promise<void> {
-    const { userId } = await auth();
+    const { userId, orgId } = await auth();
 
     if (!userId) {
         throw new Error("Unauthorized");
@@ -237,7 +263,16 @@ export async function reorderFeatures(
 
     // Check project ownership
     const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project || project.userId !== userId) {
+    if (!project) {
+        throw new Error("Unauthorized");
+    }
+
+    // Verify access: either org matches or personal project matches user
+    const hasAccess = orgId
+        ? project.organizationId === orgId
+        : project.userId === userId && !project.organizationId;
+
+    if (!hasAccess) {
         throw new Error("Unauthorized");
     }
 
@@ -259,7 +294,7 @@ export async function reorderSpecifications(
     featureId: string,
     specificationIds: string[]
 ): Promise<void> {
-    const { userId } = await auth();
+    const { userId, orgId } = await auth();
 
     if (!userId) {
         throw new Error("Unauthorized");
@@ -271,7 +306,16 @@ export async function reorderSpecifications(
         include: { project: true }
     });
 
-    if (!feature || !feature.project || feature.project.userId !== userId) {
+    if (!feature || !feature.project) {
+        throw new Error("Unauthorized");
+    }
+
+    // Verify access: either org matches or personal project matches user
+    const hasAccess = orgId
+        ? feature.project.organizationId === orgId
+        : feature.project.userId === userId && !feature.project.organizationId;
+
+    if (!hasAccess) {
         throw new Error("Unauthorized");
     }
 

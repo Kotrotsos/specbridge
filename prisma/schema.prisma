@@ -12,17 +12,20 @@ datasource db {
 
 // Project: Top-level container for organizing features
 model Project {
-  id          String    @id @default(cuid())
-  userId      String?   // Clerk user ID (optional for now)
-  name        String
-  description String?
-  order       Int       @default(0)  // For manual sorting
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  features    Feature[]
+  id             String    @id @default(cuid())
+  userId         String?   // Clerk user ID (for personal projects when no org)
+  organizationId String?   // Clerk organization ID (for org-scoped projects)
+  name           String
+  description    String?
+  order          Int       @default(0)  // For manual sorting
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  features       Feature[]
 
   @@index([userId])
+  @@index([organizationId])
   @@index([userId, order])
+  @@index([organizationId, order])
 }
 
 // Feature: Functional area within a project

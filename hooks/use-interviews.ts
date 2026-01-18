@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useOrganization } from "@clerk/nextjs";
 import {
   getAllInterviews,
   deleteInterview as deleteInterviewAction,
@@ -22,6 +23,7 @@ export function useInterviews(): UseInterviewsReturn {
   const [interviews, setInterviews] = useState<InterviewData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { organization } = useOrganization();
 
   const loadInterviews = useCallback(async () => {
     setIsLoading(true);
@@ -39,9 +41,10 @@ export function useInterviews(): UseInterviewsReturn {
     }
   }, []);
 
+  // Re-fetch interviews when organization changes
   useEffect(() => {
     loadInterviews();
-  }, [loadInterviews]);
+  }, [loadInterviews, organization?.id]);
 
   const deleteInterview = useCallback(
     async (id: string) => {

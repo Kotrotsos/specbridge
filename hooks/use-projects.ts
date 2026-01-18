@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useOrganization } from "@clerk/nextjs";
 import { getAllProjects, ProjectData } from "@/app/actions/projects";
 
 interface UseProjectsReturn {
@@ -16,6 +17,7 @@ export function useProjects(): UseProjectsReturn {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     const pathname = usePathname();
+    const { organization } = useOrganization();
 
     const loadProjects = async () => {
         setIsLoading(true);
@@ -31,9 +33,10 @@ export function useProjects(): UseProjectsReturn {
         }
     };
 
+    // Re-fetch projects when pathname changes or organization changes
     useEffect(() => {
         loadProjects();
-    }, [pathname]);
+    }, [pathname, organization?.id]);
 
     return {
         projects,

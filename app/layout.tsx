@@ -5,6 +5,7 @@ import {
   SignedIn,
   SignedOut,
   UserButton,
+  OrganizationSwitcher,
 } from "@clerk/nextjs";
 import Link from "next/link";
 import { ProjectSidebar } from "@/components/sidebar/project-sidebar";
@@ -46,6 +47,12 @@ function Navbar() {
           </SignInButton>
         </SignedOut>
         <SignedIn>
+          <OrganizationSwitcher
+            hidePersonal={false}
+            afterCreateOrganizationUrl="/"
+            afterSelectOrganizationUrl="/"
+            afterLeaveOrganizationUrl="/"
+          />
           <UserButton afterSignOutUrl="/" />
         </SignedIn>
       </div>

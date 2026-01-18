@@ -164,7 +164,7 @@ export async function createSpecification(data: {
   initialDescription: string;
   status?: SpecificationStatus;
 }): Promise<SpecificationData> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -176,7 +176,16 @@ export async function createSpecification(data: {
     include: { project: true }
   });
 
-  if (!feature || !feature.project || feature.project.userId !== userId) {
+  if (!feature || !feature.project) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? feature.project.organizationId === orgId
+    : feature.project.userId === userId && !feature.project.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -229,7 +238,7 @@ export async function updateSpecification(
     extractedKnowledge: object | null;
   }>
 ): Promise<SpecificationData | null> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -241,7 +250,16 @@ export async function updateSpecification(
     include: { feature: { include: { project: true } } }
   });
 
-  if (!existingSpec || !existingSpec.feature || !existingSpec.feature.project || existingSpec.feature.project.userId !== userId) {
+  if (!existingSpec || !existingSpec.feature || !existingSpec.feature.project) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? existingSpec.feature.project.organizationId === orgId
+    : existingSpec.feature.project.userId === userId && !existingSpec.feature.project.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -325,7 +343,7 @@ export async function updateSpecification(
 
 // Delete a specification
 export async function deleteSpecification(id: string): Promise<void> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -337,7 +355,16 @@ export async function deleteSpecification(id: string): Promise<void> {
     include: { feature: { include: { project: true } } }
   });
 
-  if (!existingSpec || !existingSpec.feature || !existingSpec.feature.project || existingSpec.feature.project.userId !== userId) {
+  if (!existingSpec || !existingSpec.feature || !existingSpec.feature.project) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? existingSpec.feature.project.organizationId === orgId
+    : existingSpec.feature.project.userId === userId && !existingSpec.feature.project.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -352,7 +379,7 @@ export async function reorderSpecifications(
   featureId: string,
   specificationIds: string[]
 ): Promise<void> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -364,7 +391,16 @@ export async function reorderSpecifications(
     include: { project: true }
   });
 
-  if (!feature || !feature.project || feature.project.userId !== userId) {
+  if (!feature || !feature.project) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? feature.project.organizationId === orgId
+    : feature.project.userId === userId && !feature.project.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -391,7 +427,7 @@ export async function addMessage(
     content: string;
   }
 ): Promise<MessageData> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -403,7 +439,16 @@ export async function addMessage(
     include: { feature: { include: { project: true } } }
   });
 
-  if (!spec || !spec.feature || !spec.feature.project || spec.feature.project.userId !== userId) {
+  if (!spec || !spec.feature || !spec.feature.project) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? spec.feature.project.organizationId === orgId
+    : spec.feature.project.userId === userId && !spec.feature.project.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -442,7 +487,7 @@ export async function upsertArtifact(
     error?: string;
   }
 ): Promise<ArtifactData> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -454,7 +499,16 @@ export async function upsertArtifact(
     include: { feature: { include: { project: true } } }
   });
 
-  if (!spec || !spec.feature || !spec.feature.project || spec.feature.project.userId !== userId) {
+  if (!spec || !spec.feature || !spec.feature.project) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? spec.feature.project.organizationId === orgId
+    : spec.feature.project.userId === userId && !spec.feature.project.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -501,7 +555,7 @@ export async function upsertArtifact(
 
 // Delete an artifact
 export async function deleteArtifact(id: string): Promise<void> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -513,7 +567,16 @@ export async function deleteArtifact(id: string): Promise<void> {
     include: { specification: { include: { feature: { include: { project: true } } } } }
   });
 
-  if (!artifact || !artifact.specification || !artifact.specification.feature || !artifact.specification.feature.project || artifact.specification.feature.project.userId !== userId) {
+  if (!artifact || !artifact.specification || !artifact.specification.feature || !artifact.specification.feature.project) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? artifact.specification.feature.project.organizationId === orgId
+    : artifact.specification.feature.project.userId === userId && !artifact.specification.feature.project.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -530,22 +593,23 @@ export async function deleteArtifact(id: string): Promise<void> {
 // Legacy function: Get all specifications across all projects/features
 // This is for the dashboard that doesn't know about the hierarchy yet
 async function getAllInterviewsLegacy(): Promise<SpecificationData[]> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
-  // If no user, return empty list or throw?
-  // Existing logic filtered by userId if present, but the query structure `userId: userId ? ... : {}` handles it.
-  // However, `getAllSpecifications` depends on `userId`.
-  // If we want to strictly disallow unauth access to ANY data:
+  // If no user, return empty list
   if (!userId) return [];
 
+  // Build the where clause based on whether user is in an organization or not
+  let whereClause = {};
+  if (orgId) {
+    // User is in an organization context - show organization specs
+    whereClause = { feature: { project: { organizationId: orgId } } };
+  } else {
+    // User is in personal context - show personal specs (no org)
+    whereClause = { feature: { project: { userId, organizationId: null } } };
+  }
+
   const specifications = await prisma.specification.findMany({
-    where: {
-      feature: {
-        project: {
-          userId
-        }
-      }
-    },
+    where: whereClause,
     include: {
       messages: {
         orderBy: { timestamp: "asc" },
@@ -592,24 +656,27 @@ async function createInterviewLegacy(data: {
   initialDescription: string;
   status?: SpecificationStatus;
 }): Promise<SpecificationData> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
   }
 
-  // Find or create a default project for this user
+  // Build the where clause based on whether user is in an organization or not
+  const projectWhereClause = orgId
+    ? { organizationId: orgId, name: "My Specifications" }
+    : { userId, organizationId: null, name: "My Specifications" };
+
+  // Find or create a default project for this user/organization
   let project = await prisma.project.findFirst({
-    where: {
-      userId,
-      name: "My Specifications",
-    },
+    where: projectWhereClause,
   });
 
   if (!project) {
     project = await prisma.project.create({
       data: {
         userId,
+        organizationId: orgId ?? null,
         name: "My Specifications",
         description: "Default project for specifications",
         order: 0,

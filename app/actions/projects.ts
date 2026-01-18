@@ -9,6 +9,7 @@ const FREE_TIER_PROJECT_LIMIT = 3;
 export interface ProjectData {
   id: string;
   userId: string | null;
+  organizationId: string | null;
   name: string;
   description: string | null;
   order: number;
@@ -36,12 +37,22 @@ export interface FeatureData {
   specifications?: SpecificationSummary[];
 }
 
-// Get all projects for current user with their features
+// Get all projects for current user/organization with their features
 export async function getAllProjects(): Promise<ProjectData[]> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
+
+  // Build the where clause based on whether user is in an organization or not
+  let whereClause = {};
+  if (orgId) {
+    // User is in an organization context - show organization projects
+    whereClause = { organizationId: orgId };
+  } else if (userId) {
+    // User is in personal context - show personal projects (no org)
+    whereClause = { userId, organizationId: null };
+  }
 
   const projects = await prisma.project.findMany({
-    where: userId ? { userId } : {},
+    where: whereClause,
     include: {
       features: {
         orderBy: { order: "asc" },
@@ -67,6 +78,7 @@ export async function getAllProjects(): Promise<ProjectData[]> {
   return projects.map((project) => ({
     id: project.id,
     userId: project.userId,
+    organizationId: project.organizationId,
     name: project.name,
     description: project.description,
     order: project.order,
@@ -100,7 +112,7 @@ export interface ProjectLimitInfo {
 }
 
 export async function checkProjectLimit(): Promise<ProjectLimitInfo> {
-  const { userId, has } = await auth();
+  const { userId, orgId, has } = await auth();
 
   if (!userId) {
     return {
@@ -115,8 +127,11 @@ export async function checkProjectLimit(): Promise<ProjectLimitInfo> {
   // The feature/plan names should match what you configure in Clerk Dashboard
   const isPro = has?.({ plan: "pro" }) || has?.({ feature: "unlimited_projects" }) || false;
 
+  // Count projects based on context (org or personal)
   const projectCount = await prisma.project.count({
-    where: { userId },
+    where: orgId
+      ? { organizationId: orgId }
+      : { userId, organizationId: null },
   });
 
   if (isPro) {
@@ -157,6 +172,7 @@ export async function getProject(id: string): Promise<ProjectData | null> {
   return {
     id: project.id,
     userId: project.userId,
+    organizationId: project.organizationId,
     name: project.name,
     description: project.description,
     order: project.order,
@@ -180,7 +196,7 @@ export async function createProject(data: {
   name: string;
   description?: string;
 }): Promise<ProjectData> {
-  const { userId, has } = await auth();
+  const { userId, orgId, has } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -191,7 +207,9 @@ export async function createProject(data: {
 
   if (!isPro) {
     const projectCount = await prisma.project.count({
-      where: { userId },
+      where: orgId
+        ? { organizationId: orgId }
+        : { userId, organizationId: null },
     });
 
     if (projectCount >= FREE_TIER_PROJECT_LIMIT) {
@@ -199,9 +217,11 @@ export async function createProject(data: {
     }
   }
 
-  // Get the highest order number for this user
+  // Get the highest order number for this context (org or personal)
   const maxOrder = await prisma.project.findFirst({
-    where: { userId },
+    where: orgId
+      ? { organizationId: orgId }
+      : { userId, organizationId: null },
     orderBy: { order: "desc" },
     select: { order: true },
   });
@@ -209,6 +229,7 @@ export async function createProject(data: {
   const project = await prisma.project.create({
     data: {
       userId: userId,
+      organizationId: orgId ?? null,
       name: data.name,
       description: data.description ?? null,
       order: (maxOrder?.order ?? -1) + 1,
@@ -223,6 +244,7 @@ export async function createProject(data: {
   return {
     id: project.id,
     userId: project.userId,
+    organizationId: project.organizationId,
     name: project.name,
     description: project.description,
     order: project.order,
@@ -240,15 +262,24 @@ export async function updateProject(
     description: string | null;
   }>
 ): Promise<ProjectData | null> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
   }
 
-  // Check ownership
+  // Check ownership (must match current context: org or personal)
   const existingProject = await prisma.project.findUnique({ where: { id } });
-  if (!existingProject || existingProject.userId !== userId) {
+  if (!existingProject) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? existingProject.organizationId === orgId
+    : existingProject.userId === userId && !existingProject.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -275,6 +306,7 @@ export async function updateProject(
   return {
     id: project.id,
     userId: project.userId,
+    organizationId: project.organizationId,
     name: project.name,
     description: project.description,
     order: project.order,
@@ -295,7 +327,7 @@ export async function updateProject(
 
 // Delete a project (cascades to features and specifications)
 export async function deleteProject(id: string): Promise<void> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -303,7 +335,16 @@ export async function deleteProject(id: string): Promise<void> {
 
   // Check ownership
   const existingProject = await prisma.project.findUnique({ where: { id } });
-  if (!existingProject || existingProject.userId !== userId) {
+  if (!existingProject) {
+    throw new Error("Unauthorized");
+  }
+
+  // Verify access: either org matches or personal project matches user
+  const hasAccess = orgId
+    ? existingProject.organizationId === orgId
+    : existingProject.userId === userId && !existingProject.organizationId;
+
+  if (!hasAccess) {
     throw new Error("Unauthorized");
   }
 
@@ -313,20 +354,22 @@ export async function deleteProject(id: string): Promise<void> {
   revalidatePath("/");
 }
 
-// Reorder projects for current user
+// Reorder projects for current user/organization
 export async function reorderProjects(projectIds: string[]): Promise<void> {
-  const { userId } = await auth();
+  const { userId, orgId } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
   }
 
   // Update each project's order based on its position in the array
-  // Note: ideally we should check ownership of all IDs first, but focusing on simple auth for now
+  // Only update projects that match the current context (org or personal)
   await Promise.all(
     projectIds.map((id, index) =>
       prisma.project.updateMany({
-        where: { id, userId },
+        where: orgId
+          ? { id, organizationId: orgId }
+          : { id, userId, organizationId: null },
         data: { order: index },
       })
     )
