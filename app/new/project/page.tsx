@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowLeft, FolderPlus } from "lucide-react";
-import { createProject } from "@/app/actions/projects";
+import { ArrowLeft, FolderPlus, Sparkles, Lock } from "lucide-react";
+import { createProject, checkProjectLimit, ProjectLimitInfo } from "@/app/actions/projects";
 
 export default function NewProjectPage() {
     const router = useRouter();
@@ -15,6 +16,8 @@ export default function NewProjectPage() {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [limitInfo, setLimitInfo] = useState<ProjectLimitInfo | null>(null);
+    const [isCheckingLimit, setIsCheckingLimit] = useState(true);
 
     useEffect(() => {
         if (isLoaded && !userId) {
@@ -22,8 +25,87 @@ export default function NewProjectPage() {
         }
     }, [isLoaded, userId, router]);
 
-    if (!isLoaded || !userId) {
-        return null; // Or a loading spinner
+    useEffect(() => {
+        async function loadLimitInfo() {
+            try {
+                const info = await checkProjectLimit();
+                setLimitInfo(info);
+            } catch (error) {
+                console.error("Failed to check project limit:", error);
+            } finally {
+                setIsCheckingLimit(false);
+            }
+        }
+        if (userId) {
+            loadLimitInfo();
+        }
+    }, [userId]);
+
+    if (!isLoaded || !userId || isCheckingLimit) {
+        return (
+            <div className="container max-w-2xl mx-auto py-12 px-4">
+                <div className="animate-pulse">
+                    <div className="h-8 w-32 bg-gray-200 rounded mb-6"></div>
+                    <div className="h-10 w-64 bg-gray-200 rounded mb-4"></div>
+                    <div className="h-64 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show upgrade prompt if limit reached
+    if (limitInfo && !limitInfo.canCreate) {
+        return (
+            <div className="container max-w-2xl mx-auto py-12 px-4">
+                <Button
+                    variant="ghost"
+                    className="mb-6 pl-0 hover:bg-transparent hover:text-blue-600"
+                    onClick={() => router.back()}
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                </Button>
+
+                <Card className="border-gray-200 shadow-sm">
+                    <CardHeader className="text-center pb-4">
+                        <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                            <Lock className="h-8 w-8 text-amber-600" />
+                        </div>
+                        <CardTitle className="text-xl">Project limit reached</CardTitle>
+                        <CardDescription className="text-base">
+                            You've created {limitInfo.currentCount} of {limitInfo.limit} projects on the free plan.
+                            Upgrade to Pro for unlimited projects.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                            <div className="flex items-start gap-3">
+                                <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
+                                <div>
+                                    <h4 className="font-medium text-gray-900">Pro Plan Benefits</h4>
+                                    <ul className="mt-2 text-sm text-gray-600 space-y-1">
+                                        <li>Unlimited projects</li>
+                                        <li>Unlimited specifications</li>
+                                        <li>Priority support</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-3 pt-2">
+                        <Link href="/pricing" className="w-full">
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Upgrade to Pro
+                            </Button>
+                        </Link>
+                        <Button variant="outline" onClick={() => router.back()} className="w-full">
+                            Maybe later
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +148,11 @@ export default function NewProjectPage() {
                     <p className="text-gray-500 mt-2">
                         Projects help you organize your specifications and features into high-level groups.
                     </p>
+                    {limitInfo && !limitInfo.isPro && (
+                        <p className="text-sm text-gray-400 mt-2">
+                            {limitInfo.currentCount} of {limitInfo.limit} projects used on free plan
+                        </p>
+                    )}
                 </div>
 
                 <Card className="border-gray-200 shadow-sm">

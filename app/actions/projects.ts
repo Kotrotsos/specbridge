@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
+const FREE_TIER_PROJECT_LIMIT = 3;
+
 export interface ProjectData {
   id: string;
   userId: string | null;
@@ -89,6 +91,51 @@ export async function getAllProjects(): Promise<ProjectData[]> {
   }));
 }
 
+// Check if user can create more projects (returns limit info)
+export interface ProjectLimitInfo {
+  canCreate: boolean;
+  currentCount: number;
+  limit: number | null; // null means unlimited
+  isPro: boolean;
+}
+
+export async function checkProjectLimit(): Promise<ProjectLimitInfo> {
+  const { userId, has } = await auth();
+
+  if (!userId) {
+    return {
+      canCreate: false,
+      currentCount: 0,
+      limit: FREE_TIER_PROJECT_LIMIT,
+      isPro: false,
+    };
+  }
+
+  // Check if user has Pro plan or unlimited_projects feature
+  // The feature/plan names should match what you configure in Clerk Dashboard
+  const isPro = has?.({ plan: "pro" }) || has?.({ feature: "unlimited_projects" }) || false;
+
+  const projectCount = await prisma.project.count({
+    where: { userId },
+  });
+
+  if (isPro) {
+    return {
+      canCreate: true,
+      currentCount: projectCount,
+      limit: null,
+      isPro: true,
+    };
+  }
+
+  return {
+    canCreate: projectCount < FREE_TIER_PROJECT_LIMIT,
+    currentCount: projectCount,
+    limit: FREE_TIER_PROJECT_LIMIT,
+    isPro: false,
+  };
+}
+
 // Get a single project by ID
 export async function getProject(id: string): Promise<ProjectData | null> {
   const project = await prisma.project.findUnique({
@@ -133,10 +180,23 @@ export async function createProject(data: {
   name: string;
   description?: string;
 }): Promise<ProjectData> {
-  const { userId } = await auth();
+  const { userId, has } = await auth();
 
   if (!userId) {
     throw new Error("Unauthorized");
+  }
+
+  // Check project limit (server-side enforcement)
+  const isPro = has?.({ plan: "pro" }) || has?.({ feature: "unlimited_projects" }) || false;
+
+  if (!isPro) {
+    const projectCount = await prisma.project.count({
+      where: { userId },
+    });
+
+    if (projectCount >= FREE_TIER_PROJECT_LIMIT) {
+      throw new Error("Project limit reached. Please upgrade to Pro for unlimited projects.");
+    }
   }
 
   // Get the highest order number for this user
