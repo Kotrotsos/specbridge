@@ -24,7 +24,7 @@ const plans = [
     },
     {
         name: "Pro",
-        price: "$19",
+        price: "$199",
         period: "per month",
         description: "For teams that need more power and flexibility.",
         features: [
@@ -37,7 +37,7 @@ const plans = [
             "Advanced analytics",
         ],
         cta: "Upgrade to Pro",
-        ctaDisabled: false,
+        ctaDisabled: true,
         highlighted: true,
     },
 ];
@@ -60,8 +60,20 @@ export default function PricingPage() {
     };
 
     return (
-        <div className="min-h-screen bg-background">
-            <div className="mx-auto max-w-5xl px-6 py-12">
+        <div className="min-h-screen bg-background relative">
+            {/* Coming Soon Overlay */}
+            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                    <h2 className="text-3xl font-semibold text-foreground">
+                        Pricing coming soon...
+                    </h2>
+                    <p className="mt-2 text-foreground-secondary">
+                        We are working on our pricing plans. Stay tuned!
+                    </p>
+                </div>
+            </div>
+
+            <div className="mx-auto max-w-5xl px-6 py-12 blur-sm pointer-events-none select-none">
                 <div className="text-center mb-12">
                     <h1 className="text-3xl font-semibold text-foreground">
                         Choose your plan

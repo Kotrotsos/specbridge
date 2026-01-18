@@ -96,12 +96,14 @@ export default function RootLayout({
   }
 
   return (
-    <ClerkProvider>
+    <ClerkProvider waitlistUrl="/waitlist">
       <html lang="en">
         <body className="min-h-screen bg-background antialiased flex flex-col">
           <Navbar />
           <div className="flex-1 flex">
-            <ProjectSidebar />
+            <SignedIn>
+              <ProjectSidebar />
+            </SignedIn>
             <main className="flex-1 overflow-auto">{children}</main>
           </div>
         </body>

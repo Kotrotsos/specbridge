@@ -5,9 +5,11 @@ import { Plus, FileText, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useInterviews } from "@/hooks/use-interviews";
+import { useAuth, Waitlist } from "@clerk/nextjs";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { isSignedIn, isLoaded } = useAuth();
   const { interviews, isLoading, deleteInterview } = useInterviews();
 
   const handleNewInterview = () => {
@@ -23,8 +25,18 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-4xl px-6 py-12">
+    <div className="min-h-screen bg-background relative">
+      {/* Waitlist Overlay - shown when not signed in */}
+      {isLoaded && !isSignedIn && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
+          <div className="relative z-10 mx-4">
+            <Waitlist />
+          </div>
+        </div>
+      )}
+
+      <div className={`mx-auto max-w-4xl px-6 py-12 ${isLoaded && !isSignedIn ? 'blur-sm pointer-events-none select-none' : ''}`}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-medium text-foreground">
