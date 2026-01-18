@@ -1,6 +1,6 @@
 "use client";
 
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { ProjectSidebar } from "@/components/sidebar/project-sidebar";
 
 interface ResizableLayoutProps {
@@ -14,7 +14,7 @@ export function ResizableLayout({ children, showSidebar = true }: ResizableLayou
     }
 
     return (
-        <PanelGroup direction="horizontal" className="flex-1">
+        <PanelGroup orientation="horizontal" className="flex-1">
             <Panel
                 defaultSize={20}
                 minSize={15}
