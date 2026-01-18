@@ -1,21 +1,109 @@
 "use client";
 
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, Settings, Check, X } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { useProjects } from "@/hooks/use-projects";
 import { updateProject, deleteProject, reorderProjects } from "@/app/actions/projects";
 import { updateFeature, deleteFeature, reorderFeatures } from "@/app/actions/features";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { METHODOLOGIES, getMethodology, MethodologyId } from "@/config/methodologies";
 
 export function ProjectSidebar() {
     const { projects, isLoading, refresh } = useProjects();
     const router = useRouter();
+    const pathname = usePathname();
     const { userId } = useAuth();
     const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
     const [expandedFeatures, setExpandedFeatures] = useState<Set<string>>(new Set());
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
+    const [editingMethodologyId, setEditingMethodologyId] = useState<string | null>(null);
+
+    // Parse current path to determine selected item
+    const selectedItem = useMemo(() => {
+        if (!pathname) return null;
+
+        // Match /project/[id]
+        const projectMatch = pathname.match(/^\/project\/([^\/]+)/);
+        if (projectMatch) {
+            return { type: "project" as const, id: projectMatch[1] };
+        }
+
+        // Match /feature/[id]
+        const featureMatch = pathname.match(/^\/feature\/([^\/]+)/);
+        if (featureMatch) {
+            return { type: "feature" as const, id: featureMatch[1] };
+        }
+
+        // Match /interview/[id] (specification)
+        const specMatch = pathname.match(/^\/interview\/([^\/]+)/);
+        if (specMatch) {
+            return { type: "specification" as const, id: specMatch[1] };
+        }
+
+        return null;
+    }, [pathname]);
+
+    // Find parent IDs for auto-expansion
+    const { selectedProjectId, selectedFeatureId, selectedSpecId } = useMemo(() => {
+        if (!selectedItem || !projects.length) {
+            return { selectedProjectId: null, selectedFeatureId: null, selectedSpecId: null };
+        }
+
+        if (selectedItem.type === "project") {
+            return { selectedProjectId: selectedItem.id, selectedFeatureId: null, selectedSpecId: null };
+        }
+
+        if (selectedItem.type === "feature") {
+            for (const project of projects) {
+                const feature = project.features.find(f => f.id === selectedItem.id);
+                if (feature) {
+                    return { selectedProjectId: project.id, selectedFeatureId: feature.id, selectedSpecId: null };
+                }
+            }
+        }
+
+        if (selectedItem.type === "specification") {
+            for (const project of projects) {
+                for (const feature of project.features) {
+                    const spec = feature.specifications?.find(s => s.id === selectedItem.id);
+                    if (spec) {
+                        return { selectedProjectId: project.id, selectedFeatureId: feature.id, selectedSpecId: spec.id };
+                    }
+                }
+            }
+        }
+
+        return { selectedProjectId: null, selectedFeatureId: null, selectedSpecId: null };
+    }, [selectedItem, projects]);
+
+    // Auto-expand parents when selection changes
+    useEffect(() => {
+        if (selectedProjectId) {
+            setExpandedProjects(prev => {
+                const newSet = new Set(prev);
+                newSet.add(selectedProjectId);
+                return newSet;
+            });
+        }
+        if (selectedFeatureId) {
+            setExpandedFeatures(prev => {
+                const newSet = new Set(prev);
+                newSet.add(selectedFeatureId);
+                return newSet;
+            });
+        }
+    }, [selectedProjectId, selectedFeatureId]);
+
+    const handleMethodologyChange = async (projectId: string, methodology: MethodologyId) => {
+        try {
+            await updateProject(projectId, { methodology });
+            await refresh();
+        } finally {
+            setEditingMethodologyId(null);
+        }
+    };
 
     const toggleProject = (projectId: string) => {
         const newExpanded = new Set(expandedProjects);
@@ -128,10 +216,16 @@ export function ProjectSidebar() {
                         {userId ? "No projects yet. Create one to get started!" : "Please sign in to view and create projects."}
                     </div>
                 ) : (
-                    projects.map((project, projectIndex) => (
+                    projects.map((project, projectIndex) => {
+                        const methodology = getMethodology(project.methodology as MethodologyId);
+                        return (
                         <div key={project.id} className="mb-1">
                             {/* Project Item */}
-                            <div className="group flex items-center gap-1 px-2 py-1.5 rounded hover:bg-gray-200 min-h-[32px]">
+                            <div className={`group flex items-center gap-1 px-2 py-1.5 rounded min-h-[32px] ${
+                                selectedProjectId === project.id && !selectedFeatureId
+                                    ? `${methodology?.color.bg} ${methodology?.color.border} border`
+                                    : "hover:bg-gray-200"
+                            }`}>
                                 <button
                                     onClick={() => toggleProject(project.id)}
                                     className="p-0.5 hover:bg-gray-300 rounded flex-shrink-0"
@@ -142,6 +236,34 @@ export function ProjectSidebar() {
                                         <ChevronRight className="w-4 h-4" />
                                     )}
                                 </button>
+
+                                {/* Methodology Badge */}
+                                {editingMethodologyId === project.id ? (
+                                    <div className="relative flex-shrink-0">
+                                        <select
+                                            value={project.methodology}
+                                            onChange={(e) => handleMethodologyChange(project.id, e.target.value as MethodologyId)}
+                                            onBlur={() => setEditingMethodologyId(null)}
+                                            className="text-xs px-1 py-0.5 rounded border border-gray-300 bg-white"
+                                            autoFocus
+                                        >
+                                            {METHODOLOGIES.map((m) => (
+                                                <option key={m.id} value={m.id}>{m.shortName}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (userId) setEditingMethodologyId(project.id);
+                                        }}
+                                        className={`flex-shrink-0 text-xs font-medium px-1.5 py-0.5 rounded ${methodology?.color.bg} ${methodology?.color.text} ${userId ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                                        title={userId ? `${methodology?.name} - Click to change` : methodology?.name}
+                                    >
+                                        {methodology?.shortName || "AG"}
+                                    </button>
+                                )}
 
                                 {editingId === project.id ? (
                                     <input
@@ -207,10 +329,29 @@ export function ProjectSidebar() {
                             {/* Features */}
                             {expandedProjects.has(project.id) && (
                                 <div className="ml-4 mt-1">
-                                    {project.features.map((feature, featureIndex) => (
+                                    {project.features.map((feature, featureIndex) => {
+                                        // Calculate progress for multi-type methodologies
+                                        const specTypes = methodology?.specificationTypes || [];
+                                        const completedTypes = new Set(
+                                            feature.specifications
+                                                ?.filter(s => s.status === "complete")
+                                                .map(s => s.specificationType) || []
+                                        );
+                                        const inProgressTypes = new Set(
+                                            feature.specifications
+                                                ?.filter(s => s.status !== "complete")
+                                                .map(s => s.specificationType) || []
+                                        );
+                                        const showProgress = specTypes.length > 1 && (feature.specifications?.length ?? 0) > 0;
+
+                                        return (
                                         <div key={feature.id} className="mb-1">
                                             {/* Feature Item */}
-                                            <div className="group flex items-center gap-1 px-2 py-1.5 rounded hover:bg-gray-200 min-h-[32px]">
+                                            <div className={`group flex items-center gap-1 px-2 py-1.5 rounded min-h-[32px] ${
+                                                selectedFeatureId === feature.id && !selectedSpecId
+                                                    ? `${methodology?.color.bg} ${methodology?.color.border} border`
+                                                    : "hover:bg-gray-200"
+                                            }`}>
                                                 <button
                                                     onClick={() => toggleFeature(feature.id)}
                                                     className="p-0.5 hover:bg-gray-300 rounded flex-shrink-0"
@@ -288,19 +429,66 @@ export function ProjectSidebar() {
                                                 )}
                                             </div>
 
+                                            {/* Progress indicator for multi-type methodologies */}
+                                            {showProgress && (
+                                                <div className="ml-6 mt-1 mb-1">
+                                                    <div className="flex items-center gap-0.5">
+                                                        {specTypes.map((specType, idx) => {
+                                                            const isComplete = completedTypes.has(specType.id);
+                                                            const isInProgress = inProgressTypes.has(specType.id);
+                                                            return (
+                                                                <div key={specType.id} className="flex items-center">
+                                                                    <div
+                                                                        className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                                                                            isComplete
+                                                                                ? `${methodology?.color.bg} ${methodology?.color.text}`
+                                                                                : isInProgress
+                                                                                    ? "bg-yellow-100 text-yellow-600"
+                                                                                    : "bg-gray-100 text-gray-400"
+                                                                        }`}
+                                                                        title={`${specType.name}: ${isComplete ? "Complete" : isInProgress ? "In Progress" : "Not Started"}`}
+                                                                    >
+                                                                        {isComplete ? (
+                                                                            <Check className="w-2.5 h-2.5" />
+                                                                        ) : (
+                                                                            <span className="text-[8px] font-medium">{idx + 1}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    {idx < specTypes.length - 1 && (
+                                                                        <div className={`w-1.5 h-0.5 ${isComplete ? methodology?.color.bg : "bg-gray-200"}`} />
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Specifications - show when expanded or when only 1 spec */}
                                             {(expandedFeatures.has(feature.id) || (feature.specificationCount ?? 0) <= 1) && feature.specifications && feature.specifications.length > 0 && (
                                                 <div className="ml-6 mt-1 space-y-0.5">
-                                                    {feature.specifications.map((spec) => (
+                                                    {feature.specifications.map((spec) => {
+                                                        const specTypeConfig = specTypes.find(t => t.id === spec.specificationType);
+                                                        const isSelected = selectedSpecId === spec.id;
+                                                        return (
                                                         <div
                                                             key={spec.id}
                                                             onClick={() => router.push(`/interview/${spec.id}`)}
-                                                            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-200 cursor-pointer group"
+                                                            className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer group ${
+                                                                isSelected
+                                                                    ? `${methodology?.color.bg} ${methodology?.color.border} border`
+                                                                    : "hover:bg-gray-200"
+                                                            }`}
                                                         >
                                                             <FileText className="w-3.5 h-3.5 text-gray-500" />
                                                             <span className="flex-1 text-sm text-gray-600 truncate hover:text-blue-600">
                                                                 {spec.name}
                                                             </span>
+                                                            {specTypeConfig && specTypes.length > 1 && (
+                                                                <span className={`text-[10px] px-1 py-0.5 rounded ${methodology?.color.bg} ${methodology?.color.text}`}>
+                                                                    {specTypeConfig.name.split(' ')[0]}
+                                                                </span>
+                                                            )}
                                                             <span
                                                                 className={`text-xs px-1.5 py-0.5 rounded ${
                                                                     spec.status === "complete"
@@ -311,15 +499,15 @@ export function ProjectSidebar() {
                                                                 {spec.status === "complete" ? "Done" : "WIP"}
                                                             </span>
                                                         </div>
-                                                    ))}
+                                                    )})}
                                                 </div>
                                             )}
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             )}
                         </div>
-                    ))
+                    )})
                 )}
             </div>
         </div>

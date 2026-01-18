@@ -16,6 +16,7 @@ export interface FeatureData {
     project?: {
         id: string;
         name: string;
+        methodology: string;
     };
 }
 
@@ -38,6 +39,7 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
                 select: {
                     id: true,
                     name: true,
+                    methodology: true,
                 },
             },
             specifications: {
@@ -68,6 +70,7 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
         project: {
             id: feature.project.id,
             name: feature.project.name,
+            methodology: feature.project.methodology,
         },
         specifications: feature.specifications.map((s) => ({
             id: s.id,
@@ -80,6 +83,9 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
         })),
     };
 }
+
+// Alias for getFeature with project info (for backward compatibility and clarity)
+export const getFeatureWithProject = getFeature;
 
 // Create a new feature
 export async function createFeature(

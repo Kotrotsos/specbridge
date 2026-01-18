@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateResponse, generateSuggestions, extractKnowledge } from "@/lib/openai";
-import { INTERVIEW_SYSTEM_PROMPT } from "@/config/prompts/interview";
+import { INTERVIEW_SYSTEM_PROMPT, generateInterviewSystemPrompt } from "@/config/prompts/interview";
 import { SUGGESTIONS_SYSTEM_PROMPT, buildSuggestionsPrompt } from "@/config/prompts/suggestions";
 import { EXTRACTION_SYSTEM_PROMPT, buildExtractionPrompt } from "@/config/prompts/extraction";
 import { ArtifactType } from "@/lib/db";
+import { SpecificationType } from "@/config/methodologies";
 
 export interface ChatMessage {
   role: "assistant" | "user";
@@ -15,6 +16,7 @@ interface ChatRequestBody {
   initialDescription?: string;
   action?: "chat" | "suggestions" | "extract";
   artifactType?: ArtifactType;
+  specificationType?: SpecificationType;
   settings?: {
     diagramType?: "flowchart" | "sequence";
   };
@@ -232,8 +234,14 @@ ${extractionPrompt}`;
           content: m.content,
         }));
 
+        // Generate type-specific system prompt based on specification type
+        const { specificationType } = body;
+        const systemPrompt = specificationType
+          ? generateInterviewSystemPrompt(specificationType)
+          : INTERVIEW_SYSTEM_PROMPT;
+
         // Generate the next response
-        const response = await generateResponse(inputMessages, INTERVIEW_SYSTEM_PROMPT);
+        const response = await generateResponse(inputMessages, systemPrompt);
 
         // Check if interview is complete
         const isComplete = response.includes("[INTERVIEW_COMPLETE]");

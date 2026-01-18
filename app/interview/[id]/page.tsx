@@ -287,6 +287,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
             messages: apiMessages,
             initialDescription: description,
             action: "chat",
+            specificationType: interview.specificationType,
           }),
         });
 

@@ -6,8 +6,9 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowLeft, FolderPlus, Sparkles, Lock } from "lucide-react";
+import { ArrowLeft, FolderPlus, Sparkles, Lock, ChevronDown } from "lucide-react";
 import { createProject, checkProjectLimit, ProjectLimitInfo } from "@/app/actions/projects";
+import { METHODOLOGIES, MethodologyId } from "@/config/methodologies";
 
 export default function NewProjectPage() {
     const router = useRouter();
@@ -15,6 +16,7 @@ export default function NewProjectPage() {
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [methodology, setMethodology] = useState<MethodologyId>("agile");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [limitInfo, setLimitInfo] = useState<ProjectLimitInfo | null>(null);
     const [isCheckingLimit, setIsCheckingLimit] = useState(true);
@@ -117,7 +119,8 @@ export default function NewProjectPage() {
             // Create the project
             await createProject({
                 name,
-                description
+                description,
+                methodology
             });
 
             // Force a simplified refresh by going to home
@@ -195,6 +198,29 @@ export default function NewProjectPage() {
                                     placeholder="What is this project about?"
                                     className="flex min-h-[100px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 resize-y"
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="methodology" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Methodology
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        id="methodology"
+                                        value={methodology}
+                                        onChange={(e) => setMethodology(e.target.value as MethodologyId)}
+                                        className="flex h-10 w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    >
+                                        {METHODOLOGIES.map((m) => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    {METHODOLOGIES.find((m) => m.id === methodology)?.description}
+                                </p>
                             </div>
                         </CardContent>
                         <CardFooter className="flex justify-end gap-3 pt-2">

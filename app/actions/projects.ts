@@ -12,6 +12,7 @@ export interface ProjectData {
   organizationId: string | null;
   name: string;
   description: string | null;
+  methodology: string;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -22,6 +23,7 @@ export interface SpecificationSummary {
   id: string;
   name: string;
   status: string;
+  specificationType: string;
   order: number;
 }
 
@@ -63,6 +65,7 @@ export async function getAllProjects(): Promise<ProjectData[]> {
               id: true,
               name: true,
               status: true,
+              specificationType: true,
               order: true,
             },
           },
@@ -81,6 +84,7 @@ export async function getAllProjects(): Promise<ProjectData[]> {
     organizationId: project.organizationId,
     name: project.name,
     description: project.description,
+    methodology: project.methodology,
     order: project.order,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -97,6 +101,7 @@ export async function getAllProjects(): Promise<ProjectData[]> {
         id: s.id,
         name: s.name,
         status: s.status,
+        specificationType: s.specificationType,
         order: s.order,
       })),
     })),
@@ -175,6 +180,7 @@ export async function getProject(id: string): Promise<ProjectData | null> {
     organizationId: project.organizationId,
     name: project.name,
     description: project.description,
+    methodology: project.methodology,
     order: project.order,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -195,6 +201,7 @@ export async function getProject(id: string): Promise<ProjectData | null> {
 export async function createProject(data: {
   name: string;
   description?: string;
+  methodology?: string;
 }): Promise<ProjectData> {
   const { userId, orgId, has } = await auth();
 
@@ -232,6 +239,7 @@ export async function createProject(data: {
       organizationId: orgId ?? null,
       name: data.name,
       description: data.description ?? null,
+      methodology: data.methodology ?? "agile",
       order: (maxOrder?.order ?? -1) + 1,
     },
     include: {
@@ -247,6 +255,7 @@ export async function createProject(data: {
     organizationId: project.organizationId,
     name: project.name,
     description: project.description,
+    methodology: project.methodology,
     order: project.order,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -260,6 +269,7 @@ export async function updateProject(
   data: Partial<{
     name: string;
     description: string | null;
+    methodology: string;
   }>
 ): Promise<ProjectData | null> {
   const { userId, orgId } = await auth();
@@ -288,6 +298,7 @@ export async function updateProject(
     data: {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
+      ...(data.methodology !== undefined && { methodology: data.methodology }),
     },
     include: {
       features: {
@@ -309,6 +320,7 @@ export async function updateProject(
     organizationId: project.organizationId,
     name: project.name,
     description: project.description,
+    methodology: project.methodology,
     order: project.order,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),

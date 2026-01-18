@@ -17,6 +17,7 @@ model Project {
   organizationId String?   // Clerk organization ID (for org-scoped projects)
   name           String
   description    String?
+  methodology    String    @default("agile") // agile, babok, ieee, custom
   order          Int       @default(0)  // For manual sorting
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -51,6 +52,7 @@ model Specification {
   feature            Feature    @relation(fields: [featureId], references: [id], onDelete: Cascade)
   name               String
   initialDescription String     @default("")
+  specificationType  String     @default("user_story") // user_story, business_requirement, functional_requirement, etc.
   status             String     @default("in_progress") // in_progress, complete
   extractedKnowledge Json?
   order              Int        @default(0)  // For manual sorting

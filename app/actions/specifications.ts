@@ -32,6 +32,7 @@ export interface SpecificationData {
   featureId: string;
   name: string;
   initialDescription: string;
+  specificationType: string;
   status: SpecificationStatus;
   messages: MessageData[];
   artifacts: ArtifactData[];
@@ -45,6 +46,7 @@ export interface SpecificationData {
     project: {
       id: string;
       name: string;
+      methodology: string;
     };
   };
 }
@@ -69,6 +71,7 @@ export async function getAllSpecifications(featureId: string): Promise<Specifica
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
+    specificationType: spec.specificationType,
     status: spec.status as SpecificationStatus,
     messages: spec.messages.map((m) => ({
       id: m.id,
@@ -105,6 +108,7 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
             select: {
               id: true,
               name: true,
+              methodology: true,
             },
           },
         },
@@ -125,6 +129,7 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
+    specificationType: spec.specificationType,
     status: spec.status as SpecificationStatus,
     messages: spec.messages.map((m) => ({
       id: m.id,
@@ -151,6 +156,7 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
       project: {
         id: spec.feature.project.id,
         name: spec.feature.project.name,
+        methodology: spec.feature.project.methodology,
       },
     },
   };
@@ -162,6 +168,7 @@ export async function createSpecification(data: {
   featureId: string;
   name: string;
   initialDescription: string;
+  specificationType?: string;
   status?: SpecificationStatus;
 }): Promise<SpecificationData> {
   const { userId, orgId } = await auth();
@@ -202,6 +209,7 @@ export async function createSpecification(data: {
       featureId: data.featureId,
       name: data.name,
       initialDescription: data.initialDescription,
+      specificationType: data.specificationType ?? "user_story",
       status: data.status ?? "in_progress",
       order: (maxOrder?.order ?? -1) + 1,
     },
@@ -218,6 +226,7 @@ export async function createSpecification(data: {
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
+    specificationType: spec.specificationType,
     status: spec.status as SpecificationStatus,
     messages: [],
     artifacts: [],
@@ -234,6 +243,7 @@ export async function updateSpecification(
   data: Partial<{
     name: string;
     initialDescription: string;
+    specificationType: string;
     status: SpecificationStatus;
     extractedKnowledge: object | null;
   }>
@@ -267,6 +277,7 @@ export async function updateSpecification(
   const prismaData: Prisma.SpecificationUpdateInput = {
     ...(data.name !== undefined && { name: data.name }),
     ...(data.initialDescription !== undefined && { initialDescription: data.initialDescription }),
+    ...(data.specificationType !== undefined && { specificationType: data.specificationType }),
     ...(data.status !== undefined && { status: data.status }),
     ...(data.extractedKnowledge !== undefined && {
       extractedKnowledge: data.extractedKnowledge === null
@@ -287,6 +298,7 @@ export async function updateSpecification(
             select: {
               id: true,
               name: true,
+              methodology: true,
             },
           },
         },
@@ -310,6 +322,7 @@ export async function updateSpecification(
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
+    specificationType: spec.specificationType,
     status: spec.status as SpecificationStatus,
     messages: spec.messages.map((m) => ({
       id: m.id,
@@ -336,6 +349,7 @@ export async function updateSpecification(
       project: {
         id: spec.feature.project.id,
         name: spec.feature.project.name,
+        methodology: spec.feature.project.methodology,
       },
     },
   };
@@ -626,6 +640,7 @@ async function getAllInterviewsLegacy(): Promise<SpecificationData[]> {
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
+    specificationType: spec.specificationType,
     status: spec.status as SpecificationStatus,
     messages: spec.messages.map((m) => ({
       id: m.id,

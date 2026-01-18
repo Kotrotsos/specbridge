@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, ChevronDown } from "lucide-react";
 import { createSpecification } from "@/app/actions/specifications";
+import { getFeatureWithProject } from "@/app/actions/features";
+import { METHODOLOGIES, MethodologyId, SpecificationType, getMethodology, getDefaultSpecificationType } from "@/config/methodologies";
 
 export default function NewSpecificationPage({ params }: { params: { featureId: string } }) {
     const router = useRouter();
@@ -15,6 +17,9 @@ export default function NewSpecificationPage({ params }: { params: { featureId: 
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [specificationType, setSpecificationType] = useState<SpecificationType>("user_story");
+    const [methodology, setMethodology] = useState<MethodologyId>("agile");
+    const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -23,9 +28,39 @@ export default function NewSpecificationPage({ params }: { params: { featureId: 
         }
     }, [isLoaded, userId, router]);
 
-    if (!isLoaded || !userId) {
-        return null;
+    useEffect(() => {
+        async function loadFeature() {
+            try {
+                const feature = await getFeatureWithProject(featureId);
+                if (feature?.project?.methodology) {
+                    const meth = feature.project.methodology as MethodologyId;
+                    setMethodology(meth);
+                    setSpecificationType(getDefaultSpecificationType(meth));
+                }
+            } catch (error) {
+                console.error("Failed to load feature:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        if (userId) {
+            loadFeature();
+        }
+    }, [featureId, userId]);
+
+    if (!isLoaded || !userId || isLoading) {
+        return (
+            <div className="container max-w-2xl mx-auto py-12 px-4">
+                <div className="animate-pulse">
+                    <div className="h-8 w-32 bg-gray-200 rounded mb-6"></div>
+                    <div className="h-10 w-64 bg-gray-200 rounded mb-4"></div>
+                    <div className="h-64 bg-gray-200 rounded"></div>
+                </div>
+            </div>
+        );
     }
+
+    const currentMethodology = getMethodology(methodology);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -37,7 +72,8 @@ export default function NewSpecificationPage({ params }: { params: { featureId: 
                 id: `spec-${Date.now()}`,
                 featureId,
                 name,
-                initialDescription: description
+                initialDescription: description,
+                specificationType
             });
 
             // Navigate to the interview/spec page
@@ -109,6 +145,29 @@ export default function NewSpecificationPage({ params }: { params: { featureId: 
                                     placeholder="Briefly describe what this specification will cover..."
                                     className="flex min-h-[100px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 resize-y"
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="specificationType" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Specification Type
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        id="specificationType"
+                                        value={specificationType}
+                                        onChange={(e) => setSpecificationType(e.target.value as SpecificationType)}
+                                        className="flex h-10 w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    >
+                                        {currentMethodology?.specificationTypes.map((type) => (
+                                            <option key={type.id} value={type.id}>
+                                                {type.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    {currentMethodology?.specificationTypes.find((t) => t.id === specificationType)?.description}
+                                </p>
                             </div>
                         </CardContent>
                         <CardFooter className="flex justify-end gap-3 pt-2">
