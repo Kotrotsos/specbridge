@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useOrganization } from "@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { METHODOLOGIES, MethodologyId } from "@/config/methodologies";
 export default function NewProjectPage() {
     const router = useRouter();
     const { isLoaded, userId } = useAuth();
+    const { organization } = useOrganization();
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -29,6 +30,7 @@ export default function NewProjectPage() {
 
     useEffect(() => {
         async function loadLimitInfo() {
+            setIsCheckingLimit(true);
             try {
                 const info = await checkProjectLimit();
                 setLimitInfo(info);
@@ -41,7 +43,7 @@ export default function NewProjectPage() {
         if (userId) {
             loadLimitInfo();
         }
-    }, [userId]);
+    }, [userId, organization?.id]);
 
     if (!isLoaded || !userId || isCheckingLimit) {
         return (
