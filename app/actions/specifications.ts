@@ -677,6 +677,12 @@ async function createInterviewLegacy(data: {
     throw new Error("Unauthorized");
   }
 
+  // Check if specification already exists (idempotent create)
+  const existingSpec = await getSpecification(data.id);
+  if (existingSpec) {
+    return existingSpec;
+  }
+
   // Build the where clause based on whether user is in an organization or not
   const projectWhereClause = orgId
     ? { organizationId: orgId, name: "My Specifications" }
@@ -719,13 +725,23 @@ async function createInterviewLegacy(data: {
   }
 
   // Now create the specification with the feature ID
-  return createSpecification({
-    id: data.id,
-    featureId: feature.id,
-    name: data.title,
-    initialDescription: data.initialDescription,
-    status: data.status,
-  });
+  // Use try-catch to handle race conditions where spec was created between check and create
+  try {
+    return await createSpecification({
+      id: data.id,
+      featureId: feature.id,
+      name: data.title,
+      initialDescription: data.initialDescription,
+      status: data.status,
+    });
+  } catch (error) {
+    // If unique constraint error, specification was created by another request - return it
+    if (error instanceof Error && error.message.includes("Unique constraint")) {
+      const spec = await getSpecification(data.id);
+      if (spec) return spec;
+    }
+    throw error;
+  }
 }
 
 export type InterviewData = SpecificationData;
