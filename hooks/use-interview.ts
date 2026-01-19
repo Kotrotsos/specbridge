@@ -125,10 +125,33 @@ export function useInterview({
     async (description: string) => {
       if (!interview) return;
 
+      // Extract a reasonable title from the description
+      let title = description;
+
+      // If contains "specifically", extract that part as the main topic
+      const specificallyMatch = description.match(/specifically\s+(.+?)(?:\s+when|\s+for|\s+if|$)/i);
+      if (specificallyMatch) {
+        title = specificallyMatch[1];
+      } else {
+        // Remove common prefixes
+        title = title
+          .replace(/^(I want|I need|I'd like|Create|Build|Make|Help me with|Help me|Can you|Please)\s+(a |an |the |to |)?/i, "")
+          .replace(/^(spec|specification|feature|requirement)s?\s+(about|for|on|regarding)\s+/i, "")
+          .trim();
+      }
+
+      // Capitalize first letter
+      title = title.charAt(0).toUpperCase() + title.slice(1);
+
+      // Truncate if too long
+      if (title.length > 60) {
+        title = title.slice(0, 57) + "...";
+      }
+
       const updated = await updateInterview(id, {
         initialDescription: description,
         // Also update name if it's still the default
-        ...(interview.name === "New Interview" ? { name: description } : {}),
+        ...(interview.name === "New Interview" ? { name: title } : {}),
       });
       if (updated) {
         setInterview(updated);
