@@ -27,6 +27,13 @@ export interface SpecificationSummary {
   order: number;
 }
 
+export interface PhaseSummary {
+  id: string;
+  phaseNumber: number;
+  phaseName: string;
+  status: string;
+}
+
 export interface FeatureData {
   id: string;
   projectId: string;
@@ -37,6 +44,7 @@ export interface FeatureData {
   updatedAt: string;
   specificationCount?: number;
   specifications?: SpecificationSummary[];
+  phases?: PhaseSummary[];
 }
 
 // Get all projects for current user/organization with their features
@@ -67,6 +75,15 @@ export async function getAllProjects(): Promise<ProjectData[]> {
               status: true,
               specificationType: true,
               order: true,
+            },
+          },
+          phases: {
+            orderBy: { phaseNumber: "asc" },
+            select: {
+              id: true,
+              phaseNumber: true,
+              phaseName: true,
+              status: true,
             },
           },
           _count: {
@@ -103,6 +120,12 @@ export async function getAllProjects(): Promise<ProjectData[]> {
         status: s.status,
         specificationType: s.specificationType,
         order: s.order,
+      })),
+      phases: f.phases.map((p) => ({
+        id: p.id,
+        phaseNumber: p.phaseNumber,
+        phaseName: p.phaseName,
+        status: p.status,
       })),
     })),
   }));

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
+import { BABOK_PHASES } from "@/app/actions/phases";
 
 export interface FeatureData {
     id: string;
@@ -131,6 +132,19 @@ export async function createFeature(
             order: (maxOrder?.order ?? -1) + 1,
         },
     });
+
+    // Auto-create phases for BABOK projects
+    if (project.methodology === "babok") {
+        await prisma.phase.createMany({
+            data: BABOK_PHASES.map((phase) => ({
+                featureId: feature.id,
+                phaseNumber: phase.number,
+                phaseName: phase.name,
+                status: "not_started",
+                order: phase.number,
+            })),
+        });
+    }
 
     revalidatePath("/");
 

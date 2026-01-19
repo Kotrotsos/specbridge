@@ -429,8 +429,44 @@ export function ProjectSidebar() {
                                                 )}
                                             </div>
 
-                                            {/* Progress indicator for multi-type methodologies */}
-                                            {showProgress && (
+                                            {/* Progress indicator for BABOK phases */}
+                                            {project.methodology === "babok" && feature.phases && feature.phases.length > 0 && (
+                                                <div className="ml-6 mt-2 mb-2">
+                                                    <div className="flex items-center">
+                                                        {feature.phases.map((phase, idx) => {
+                                                            const isComplete = phase.status === "complete";
+                                                            const isInProgress = phase.status === "in_progress";
+                                                            const phaseLabels = ["C", "CS", "FS", "DR", "V"];
+                                                            return (
+                                                                <div key={phase.id} className="flex items-center">
+                                                                    <div
+                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center border-2 text-[10px] font-medium ${
+                                                                            isComplete
+                                                                                ? "bg-green-100 border-green-400 text-green-600"
+                                                                                : isInProgress
+                                                                                    ? "bg-blue-50 border-blue-400 text-blue-600"
+                                                                                    : "bg-gray-50 border-gray-200 text-gray-400"
+                                                                        }`}
+                                                                        title={`Phase ${phase.phaseNumber}: ${phase.phaseName.replace(/_/g, " ")} - ${phase.status.replace(/_/g, " ")}`}
+                                                                    >
+                                                                        {isComplete ? (
+                                                                            <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                                                        ) : (
+                                                                            phaseLabels[idx] || phase.phaseNumber
+                                                                        )}
+                                                                    </div>
+                                                                    {idx < (feature.phases?.length ?? 0) - 1 && (
+                                                                        <span className={`mx-0.5 ${isComplete ? "text-green-300" : "text-gray-300"}`}>-</span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Progress indicator for multi-type methodologies (non-BABOK) */}
+                                            {project.methodology !== "babok" && showProgress && (
                                                 <div className="ml-6 mt-2 mb-2">
                                                     <div className="flex items-center">
                                                         {specTypes.map((specType, idx) => {

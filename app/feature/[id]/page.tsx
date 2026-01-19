@@ -3,22 +3,32 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { Plus, FileText, Clock } from "lucide-react";
+import { Plus, FileText, Clock, Play, Check, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getFeature, FeatureData } from "@/app/actions/features";
+import { getFeaturePhases, PhaseData, updatePhaseStatus, BABOK_PHASES } from "@/app/actions/phases";
 
 export default function FeaturePage({ params }: { params: { id: string } }) {
     const router = useRouter();
     const { userId } = useAuth();
     const [feature, setFeature] = useState<FeatureData | null>(null);
+    const [phases, setPhases] = useState<PhaseData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    const isBabok = feature?.project?.methodology === "babok";
 
     useEffect(() => {
         async function loadFeature() {
             try {
                 const data = await getFeature(params.id);
                 setFeature(data);
+
+                // Load phases for BABOK projects
+                if (data?.project?.methodology === "babok") {
+                    const phaseData = await getFeaturePhases(params.id);
+                    setPhases(phaseData);
+                }
             } catch (error) {
                 console.error("Failed to load feature:", error);
             } finally {
@@ -27,6 +37,29 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
         }
         loadFeature();
     }, [params.id]);
+
+    const handleStartPhase = async (phaseId: string) => {
+        try {
+            await updatePhaseStatus(phaseId, "in_progress");
+            // Refresh phases
+            const phaseData = await getFeaturePhases(params.id);
+            setPhases(phaseData);
+            // Navigate to interview for this phase
+            router.push(`/interview/new?featureId=${feature?.id}&phaseId=${phaseId}`);
+        } catch (error) {
+            console.error("Failed to start phase:", error);
+        }
+    };
+
+    const getPhaseLabel = (phaseName: string) => {
+        const phase = BABOK_PHASES.find(p => p.name === phaseName);
+        return phase?.label ?? phaseName;
+    };
+
+    const getPhaseDuration = (phaseName: string) => {
+        const phase = BABOK_PHASES.find(p => p.name === phaseName);
+        return phase?.duration ?? "";
+    };
 
     if (isLoading) {
         return (
@@ -76,17 +109,116 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
                     )}
                 </div>
 
+                {/* BABOK Phase Management */}
+                {isBabok && phases.length > 0 && (
+                    <div className="mt-8">
+                        <h2 className="text-lg font-medium text-gray-900 mb-4">BABOK Phases</h2>
+                        <div className="grid gap-3">
+                            {phases.map((phase, idx) => {
+                                const isComplete = phase.status === "complete";
+                                const isInProgress = phase.status === "in_progress";
+                                const isNotStarted = phase.status === "not_started";
+                                const prevPhase = idx > 0 ? phases[idx - 1] : null;
+                                const canStart = isNotStarted && (!prevPhase || prevPhase.status === "complete");
+
+                                return (
+                                    <div
+                                        key={phase.id}
+                                        className={`border rounded-lg p-4 ${
+                                            isComplete
+                                                ? "border-green-200 bg-green-50"
+                                                : isInProgress
+                                                    ? "border-blue-200 bg-blue-50"
+                                                    : "border-gray-200 bg-white"
+                                        }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                                        isComplete
+                                                            ? "bg-green-500 text-white"
+                                                            : isInProgress
+                                                                ? "bg-blue-500 text-white"
+                                                                : "bg-gray-200 text-gray-600"
+                                                    }`}
+                                                >
+                                                    {isComplete ? (
+                                                        <Check className="w-4 h-4" />
+                                                    ) : (
+                                                        phase.phaseNumber
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-medium text-gray-900">
+                                                        {getPhaseLabel(phase.phaseName)}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-500">
+                                                        {getPhaseDuration(phase.phaseName)}
+                                                        {phase.specificationCount > 0 && (
+                                                            <span className="ml-2">
+                                                                {phase.specificationCount} interview{phase.specificationCount !== 1 ? "s" : ""}
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className={`rounded-full px-3 py-1 text-xs ${
+                                                        isComplete
+                                                            ? "bg-green-100 text-green-800"
+                                                            : isInProgress
+                                                                ? "bg-blue-100 text-blue-800"
+                                                                : "bg-gray-100 text-gray-600"
+                                                    }`}
+                                                >
+                                                    {isComplete ? "Complete" : isInProgress ? "In Progress" : "Not Started"}
+                                                </span>
+                                                {userId && (isInProgress || canStart) && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleStartPhase(phase.id)}
+                                                        className={
+                                                            isInProgress
+                                                                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                                                : "bg-gray-600 hover:bg-gray-700 text-white"
+                                                        }
+                                                    >
+                                                        {isInProgress ? (
+                                                            <>Continue <ChevronRight className="ml-1 w-4 h-4" /></>
+                                                        ) : (
+                                                            <>Start <Play className="ml-1 w-3 h-3" /></>
+                                                        )}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Regular Specifications */}
                 <div className="mt-8">
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">Specifications</h2>
+                    <h2 className="text-lg font-medium text-gray-900 mb-4">
+                        {isBabok ? "All Interviews" : "Specifications"}
+                    </h2>
 
                     {!feature.specifications || feature.specifications.length === 0 ? (
                         <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
                             <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                            <h3 className="mt-4 text-sm font-medium text-gray-900">No specifications yet</h3>
+                            <h3 className="mt-4 text-sm font-medium text-gray-900">
+                                {isBabok ? "No interviews yet" : "No specifications yet"}
+                            </h3>
                             <p className="mt-2 text-sm text-gray-500">
-                                Start documenting this feature by adding a specification.
+                                {isBabok
+                                    ? "Start with Phase 1 above to begin gathering requirements."
+                                    : "Start documenting this feature by adding a specification."}
                             </p>
-                            {userId && (
+                            {userId && !isBabok && (
                                 <Button
                                     onClick={() => router.push(`/new/specification/${feature.id}`)}
                                     variant="outline"

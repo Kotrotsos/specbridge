@@ -12,21 +12,38 @@ datasource db {
 
 // Project: Top-level container for organizing features
 model Project {
-  id             String    @id @default(cuid())
-  userId         String?   // Clerk user ID (for personal projects when no org)
-  organizationId String?   // Clerk organization ID (for org-scoped projects)
+  id             String          @id @default(cuid())
+  userId         String?         // Clerk user ID (for personal projects when no org)
+  organizationId String?         // Clerk organization ID (for org-scoped projects)
   name           String
   description    String?
-  methodology    String    @default("agile") // agile, babok, ieee, custom
-  order          Int       @default(0)  // For manual sorting
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  methodology    String          @default("agile") // agile, babok, ieee, custom
+  order          Int             @default(0)  // For manual sorting
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   features       Feature[]
+  experts        ProjectExpert[]
 
   @@index([userId])
   @@index([organizationId])
   @@index([userId, order])
   @@index([organizationId, order])
+}
+
+// ProjectExpert: Subject matter experts for BABOK projects
+model ProjectExpert {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  email     String
+  name      String
+  role      String   // domain_expert, stakeholder, consultant, tech_lead
+  expertise String[] // Areas of expertise
+  isActive  Boolean  @default(true)
+  invitedAt DateTime @default(now())
+
+  @@index([projectId])
+  @@unique([projectId, email])
 }
 
 // Feature: Functional area within a project
@@ -40,29 +57,75 @@ model Feature {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   specifications Specification[]
+  phases         Phase[]
 
   @@index([projectId])
   @@index([projectId, order])
 }
 
+// Phase: BABOK interview phase (1-5) for structured requirements gathering
+model Phase {
+  id             String          @id @default(cuid())
+  featureId      String
+  feature        Feature         @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  phaseNumber    Int             // 1-5
+  phaseName      String          // context_stakeholders, current_state, future_state, detailed_rules, validation
+  status         String          @default("not_started") // not_started, in_progress, complete
+  startedAt      DateTime?
+  completedAt    DateTime?
+  order          Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  specifications Specification[]
+  extractedItems ExtractedItem[]
+
+  @@index([featureId])
+  @@unique([featureId, phaseNumber])
+}
+
 // Specification: Individual knowledge extraction session (formerly Interview)
 model Specification {
-  id                 String     @id @default(cuid())
+  id                 String          @id @default(cuid())
   featureId          String
-  feature            Feature    @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  feature            Feature         @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  phaseId            String?
+  phase              Phase?          @relation(fields: [phaseId], references: [id])
   name               String
-  initialDescription String     @default("")
-  specificationType  String     @default("user_story") // user_story, business_requirement, functional_requirement, etc.
-  status             String     @default("in_progress") // in_progress, complete
+  initialDescription String          @default("")
+  specificationType  String          @default("user_story") // user_story, business_requirement, functional_requirement, etc.
+  status             String          @default("in_progress") // in_progress, complete
   extractedKnowledge Json?
-  order              Int        @default(0)  // For manual sorting
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  order              Int             @default(0)  // For manual sorting
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
   messages           Message[]
   artifacts          Artifact[]
+  extractedItems     ExtractedItem[]
 
   @@index([featureId])
   @@index([featureId, order])
+  @@index([phaseId])
+}
+
+// ExtractedItem: Tagged knowledge extracted from BABOK interviews
+model ExtractedItem {
+  id              String         @id @default(cuid())
+  phaseId         String
+  phase           Phase          @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  specificationId String?
+  specification   Specification? @relation(fields: [specificationId], references: [id], onDelete: SetNull)
+  tag             String         // BUSINESS_NEED, STAKEHOLDER, PROCESS_STEP, RULE, etc.
+  tagValue        String?        // Optional qualifier (e.g., role name for STAKEHOLDER)
+  content         String         // The extracted text
+  confidence      Float          @default(1.0)
+  sourceMessageId String?        // Reference to source message
+  sourceQuote     String?        // Direct quote from transcript
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([phaseId])
+  @@index([specificationId])
+  @@index([tag])
 }
 
 model Message {
