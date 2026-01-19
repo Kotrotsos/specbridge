@@ -8,6 +8,7 @@ import { updateFeature, deleteFeature, reorderFeatures } from "@/app/actions/fea
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { METHODOLOGIES, getMethodology, MethodologyId } from "@/config/methodologies";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function ProjectSidebar() {
     const { projects, isLoading, refresh } = useProjects();
@@ -19,6 +20,15 @@ export function ProjectSidebar() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState("");
     const [editingMethodologyId, setEditingMethodologyId] = useState<string | null>(null);
+    const [deleteDialog, setDeleteDialog] = useState<{
+        isOpen: boolean;
+        type: "project" | "feature";
+        id: string;
+        name: string;
+        specCount: number;
+        featureCount: number;
+    } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Parse current path to determine selected item
     const selectedItem = useMemo(() => {
@@ -158,15 +168,68 @@ export function ProjectSidebar() {
         }
     };
 
-    const handleDelete = async (id: string, type: "project" | "feature", name: string) => {
-        if (!confirm(`Delete ${type} "${name}"?`)) return;
+    const openDeleteDialog = (
+        type: "project" | "feature",
+        id: string,
+        name: string,
+        specCount: number = 0,
+        featureCount: number = 0
+    ) => {
+        setDeleteDialog({ isOpen: true, type, id, name, specCount, featureCount });
+    };
 
-        if (type === "project") {
-            await deleteProject(id);
-        } else {
-            await deleteFeature(id);
+    const closeDeleteDialog = () => {
+        setDeleteDialog(null);
+        setIsDeleting(false);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteDialog) return;
+
+        setIsDeleting(true);
+        try {
+            if (deleteDialog.type === "project") {
+                await deleteProject(deleteDialog.id);
+            } else {
+                await deleteFeature(deleteDialog.id);
+            }
+            await refresh();
+            closeDeleteDialog();
+            // Navigate to home if we deleted the currently selected item
+            if (
+                (deleteDialog.type === "project" && selectedProjectId === deleteDialog.id) ||
+                (deleteDialog.type === "feature" && selectedFeatureId === deleteDialog.id)
+            ) {
+                router.push("/");
+            }
+        } catch (error) {
+            console.error("Failed to delete:", error);
+            setIsDeleting(false);
         }
-        await refresh();
+    };
+
+    const getDeleteDescription = () => {
+        if (!deleteDialog) return "";
+
+        if (deleteDialog.type === "project") {
+            const parts = [];
+            if (deleteDialog.featureCount > 0) {
+                parts.push(`${deleteDialog.featureCount} feature${deleteDialog.featureCount !== 1 ? "s" : ""}`);
+            }
+            if (deleteDialog.specCount > 0) {
+                parts.push(`${deleteDialog.specCount} specification${deleteDialog.specCount !== 1 ? "s" : ""}`);
+            }
+
+            if (parts.length > 0) {
+                return `This will permanently delete the project "${deleteDialog.name}" and all its contents:\n\n${parts.join(" and ")}\n\nThis action cannot be undone.`;
+            }
+            return `This will permanently delete the project "${deleteDialog.name}".\n\nThis action cannot be undone.`;
+        } else {
+            if (deleteDialog.specCount > 0) {
+                return `This will permanently delete the feature "${deleteDialog.name}" and its ${deleteDialog.specCount} specification${deleteDialog.specCount !== 1 ? "s" : ""}.\n\nThis action cannot be undone.`;
+            }
+            return `This will permanently delete the feature "${deleteDialog.name}".\n\nThis action cannot be undone.`;
+        }
     };
 
     const moveUp = async (items: any[], index: number, reorderFn: (ids: string[]) => Promise<void>) => {
@@ -298,7 +361,19 @@ export function ProjectSidebar() {
                                             <Pencil className="w-3 h-3" />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(project.id, "project", project.name)}
+                                            onClick={() => {
+                                                const totalSpecs = project.features.reduce(
+                                                    (acc, f) => acc + (f.specificationCount ?? 0),
+                                                    0
+                                                );
+                                                openDeleteDialog(
+                                                    "project",
+                                                    project.id,
+                                                    project.name,
+                                                    totalSpecs,
+                                                    project.features.length
+                                                );
+                                            }}
                                             className="p-1 hover:bg-red-200 rounded"
                                             title="Delete"
                                         >
@@ -401,7 +476,12 @@ export function ProjectSidebar() {
                                                             <Pencil className="w-3 h-3" />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(feature.id, "feature", feature.name)}
+                                                            onClick={() => openDeleteDialog(
+                                                                "feature",
+                                                                feature.id,
+                                                                feature.name,
+                                                                feature.specificationCount ?? 0
+                                                            )}
                                                             className="p-1 hover:bg-red-200 rounded"
                                                             title="Delete"
                                                         >
@@ -544,6 +624,19 @@ export function ProjectSidebar() {
                     )})
                 )}
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteDialog?.isOpen ?? false}
+                onClose={closeDeleteDialog}
+                onConfirm={confirmDelete}
+                title={`Delete ${deleteDialog?.type === "project" ? "Project" : "Feature"}?`}
+                description={getDeleteDescription()}
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }
