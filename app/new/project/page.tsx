@@ -118,16 +118,15 @@ export default function NewProjectPage() {
 
         setIsSubmitting(true);
         try {
-            // Create the project
-            await createProject({
+            // Create the project and navigate to it
+            const project = await createProject({
                 name,
                 description,
                 methodology
             });
 
-            // Force a simplified refresh by going to home
-            // In a real app we might want to wait for revalidation
-            router.push("/");
+            // Navigate to the new project page so it's selected in sidebar
+            router.push(`/project/${project.id}`);
             router.refresh();
         } catch (error) {
             console.error(error);

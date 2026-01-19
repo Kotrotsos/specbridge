@@ -33,12 +33,13 @@ export default function NewFeaturePage({ params }: { params: { projectId: string
 
         setIsSubmitting(true);
         try {
-            await createFeature(projectId, {
+            const feature = await createFeature(projectId, {
                 name,
                 description
             });
 
-            router.push("/");
+            // Navigate to the new feature page so it's selected in sidebar
+            router.push(`/feature/${feature.id}`);
             router.refresh();
         } catch (error) {
             console.error(error);
