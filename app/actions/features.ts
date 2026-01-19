@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
-import { BABOK_PHASES } from "@/app/actions/phases";
+import { BABOK_PHASES } from "@/config/babok-phases";
 
 export interface FeatureData {
     id: string;

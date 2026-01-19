@@ -7,7 +7,8 @@ import { Plus, FileText, Clock, Play, Check, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getFeature, FeatureData } from "@/app/actions/features";
-import { getFeaturePhases, PhaseData, updatePhaseStatus, BABOK_PHASES } from "@/app/actions/phases";
+import { getFeaturePhases, PhaseData, updatePhaseStatus } from "@/app/actions/phases";
+import { BABOK_PHASES } from "@/config/babok-phases";
 
 export default function FeaturePage({ params }: { params: { id: string } }) {
     const router = useRouter();
