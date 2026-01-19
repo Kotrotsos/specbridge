@@ -31,7 +31,7 @@ export default function FeaturePage({ params }: { params: Promise<{ id: string }
 
                 // Load phases for BABOK projects
                 if (data?.project?.methodology === "babok") {
-                    const phaseData = await getFeaturePhases(params.id);
+                    const phaseData = await getFeaturePhases(id);
                     setPhases(phaseData);
                 }
             } catch (error) {
@@ -82,7 +82,7 @@ export default function FeaturePage({ params }: { params: Promise<{ id: string }
             }
 
             // Refresh data and navigate
-            const phaseData = await getFeaturePhases(params.id);
+            const phaseData = await getFeaturePhases(id);
             setPhases(phaseData);
             router.push(`/interview/${newInterview.id}`);
         } catch (error) {

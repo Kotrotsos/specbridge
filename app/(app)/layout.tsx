@@ -8,6 +8,7 @@ import {
 } from "@clerk/nextjs";
 import Link from "next/link";
 import { ProjectSidebar } from "@/components/sidebar/project-sidebar";
+import { ProgressProvider } from "@/components/ui/progress-bar";
 
 function Navbar() {
   return (
@@ -56,15 +57,17 @@ function Navbar() {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider waitlistUrl="/waitlist" dynamic>
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <div className="flex-1 flex">
-          <SignedIn>
-            <ProjectSidebar />
-          </SignedIn>
-          <main className="flex-1 overflow-auto">{children}</main>
+      <ProgressProvider>
+        <div className="min-h-screen bg-background flex flex-col">
+          <Navbar />
+          <div className="flex-1 flex">
+            <SignedIn>
+              <ProjectSidebar />
+            </SignedIn>
+            <main className="flex-1 overflow-auto">{children}</main>
+          </div>
         </div>
-      </div>
+      </ProgressProvider>
     </ClerkProvider>
   );
 }
