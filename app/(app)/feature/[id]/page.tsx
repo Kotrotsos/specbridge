@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Plus, FileText, Clock } from "lucide-react";
@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getFeature, FeatureData } from "@/app/actions/features";
 
-export default function FeaturePage({ params }: { params: { id: string } }) {
+export default function FeaturePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const { userId } = useAuth();
     const [feature, setFeature] = useState<FeatureData | null>(null);
@@ -17,7 +18,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
     useEffect(() => {
         async function loadFeature() {
             try {
-                const data = await getFeature(params.id);
+                const data = await getFeature(id);
                 setFeature(data);
             } catch (error) {
                 console.error("Failed to load feature:", error);
@@ -26,7 +27,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
             }
         }
         loadFeature();
-    }, [params.id]);
+    }, [id]);
 
     if (isLoading) {
         return (

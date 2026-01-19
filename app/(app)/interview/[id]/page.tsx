@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, use } from "react";
 import {
   FileText,
   GitBranch,
@@ -27,7 +27,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import clsx from "clsx";
 
 interface InterviewPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // Artifact type configuration
@@ -76,6 +76,7 @@ const ARTIFACT_TYPES: {
   ];
 
 export default function InterviewPage({ params }: InterviewPageProps) {
+  const { id } = use(params);
   const {
     interview,
     isLoading: isLoadingInterview,
@@ -85,7 +86,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
     addArtifact,
     updateArtifact,
     deleteArtifact,
-  } = useInterview({ id: params.id });
+  } = useInterview({ id });
 
   const [isSending, setIsSending] = useState(false);
   const [inputValue, setInputValue] = useState("");
