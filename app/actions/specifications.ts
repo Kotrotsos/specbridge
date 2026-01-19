@@ -49,6 +49,12 @@ export interface SpecificationData {
       methodology: string;
     };
   };
+  // BABOK phase information (if linked to a phase)
+  phase?: {
+    id: string;
+    phaseNumber: number;
+    phaseName: string;
+  } | null;
 }
 
 // Get all specifications for a feature
@@ -113,6 +119,13 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
           },
         },
       },
+      phase: {
+        select: {
+          id: true,
+          phaseNumber: true,
+          phaseName: true,
+        },
+      },
       messages: {
         orderBy: { timestamp: "asc" },
       },
@@ -159,6 +172,11 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
         methodology: spec.feature.project.methodology,
       },
     },
+    phase: spec.phase ? {
+      id: spec.phase.id,
+      phaseNumber: spec.phase.phaseNumber,
+      phaseName: spec.phase.phaseName,
+    } : null,
   };
 }
 
@@ -166,6 +184,7 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
 export async function createSpecification(data: {
   id: string;
   featureId: string;
+  phaseId?: string;
   name: string;
   initialDescription: string;
   specificationType?: string;
@@ -207,6 +226,7 @@ export async function createSpecification(data: {
     data: {
       id: data.id,
       featureId: data.featureId,
+      phaseId: data.phaseId ?? null,
       name: data.name,
       initialDescription: data.initialDescription,
       specificationType: data.specificationType ?? "user_story",
@@ -668,84 +688,21 @@ async function getAllInterviewsLegacy(): Promise<SpecificationData[]> {
   }));
 }
 
-// Legacy wrapper: Auto-create default project/feature for backward compatibility
-async function createInterviewLegacy(data: {
+// Interview creation now requires a featureId - no auto-creation of projects/features
+export async function createInterviewWithFeature(data: {
   id: string;
+  featureId: string;
   title: string;
   initialDescription: string;
   status?: SpecificationStatus;
 }): Promise<SpecificationData> {
-  const { userId, orgId } = await auth();
-
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
-  // Check if specification already exists (idempotent create)
-  const existingSpec = await getSpecification(data.id);
-  if (existingSpec) {
-    return existingSpec;
-  }
-
-  // Build the where clause based on whether user is in an organization or not
-  const projectWhereClause = orgId
-    ? { organizationId: orgId, name: "My Specifications" }
-    : { userId, organizationId: null, name: "My Specifications" };
-
-  // Find or create a default project for this user/organization
-  let project = await prisma.project.findFirst({
-    where: projectWhereClause,
+  return createSpecification({
+    id: data.id,
+    featureId: data.featureId,
+    name: data.title,
+    initialDescription: data.initialDescription,
+    status: data.status,
   });
-
-  if (!project) {
-    project = await prisma.project.create({
-      data: {
-        userId,
-        organizationId: orgId ?? null,
-        name: "My Specifications",
-        description: "Default project for specifications",
-        order: 0,
-      },
-    });
-  }
-
-  // Find or create a default feature in this project
-  let feature = await prisma.feature.findFirst({
-    where: {
-      projectId: project.id,
-      name: "General",
-    },
-  });
-
-  if (!feature) {
-    feature = await prisma.feature.create({
-      data: {
-        projectId: project.id,
-        name: "General",
-        description: "General specifications",
-        order: 0,
-      },
-    });
-  }
-
-  // Now create the specification with the feature ID
-  // Use try-catch to handle race conditions where spec was created between check and create
-  try {
-    return await createSpecification({
-      id: data.id,
-      featureId: feature.id,
-      name: data.title,
-      initialDescription: data.initialDescription,
-      status: data.status,
-    });
-  } catch (error) {
-    // If unique constraint error, specification was created by another request - return it
-    if (error instanceof Error && error.message.includes("Unique constraint")) {
-      const spec = await getSpecification(data.id);
-      if (spec) return spec;
-    }
-    throw error;
-  }
 }
 
 export type InterviewData = SpecificationData;
@@ -754,7 +711,7 @@ export type InterviewStatus = SpecificationStatus;
 // For hooks/components still using old names
 export const getInterview = getSpecification;
 export const getAllInterviews = getAllInterviewsLegacy; // Use legacy version for now
-export const createInterview = createInterviewLegacy; // Auto-create project/feature
+export const createInterview = createInterviewWithFeature; // Requires featureId
 export const updateInterview = updateSpecification;
 export const deleteInterview = deleteSpecification;
 

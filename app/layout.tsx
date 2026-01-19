@@ -9,6 +9,7 @@ import {
 } from "@clerk/nextjs";
 import Link from "next/link";
 import { ProjectSidebar } from "@/components/sidebar/project-sidebar";
+import { ProgressProvider } from "@/components/ui/progress-bar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -85,11 +86,13 @@ export default function RootLayout({
     return (
       <html lang="en">
         <body className="min-h-screen bg-background antialiased flex flex-col">
-          <NavbarPlaceholder />
-          <div className="flex-1 flex">
-            <ProjectSidebar />
-            <main className="flex-1 overflow-auto">{children}</main>
-          </div>
+          <ProgressProvider>
+            <NavbarPlaceholder />
+            <div className="flex-1 flex">
+              <ProjectSidebar />
+              <main className="flex-1 overflow-auto">{children}</main>
+            </div>
+          </ProgressProvider>
         </body>
       </html>
     );
@@ -99,13 +102,15 @@ export default function RootLayout({
     <ClerkProvider waitlistUrl="/waitlist">
       <html lang="en">
         <body className="min-h-screen bg-background antialiased flex flex-col">
-          <Navbar />
-          <div className="flex-1 flex">
-            <SignedIn>
-              <ProjectSidebar />
-            </SignedIn>
-            <main className="flex-1 overflow-auto">{children}</main>
-          </div>
+          <ProgressProvider>
+            <Navbar />
+            <div className="flex-1 flex">
+              <SignedIn>
+                <ProjectSidebar />
+              </SignedIn>
+              <main className="flex-1 overflow-auto">{children}</main>
+            </div>
+          </ProgressProvider>
         </body>
       </html>
     </ClerkProvider>

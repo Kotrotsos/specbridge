@@ -3,16 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { Plus, Layers, FileText } from "lucide-react";
+import { Plus, Layers, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getProject, ProjectData } from "@/app/actions/projects";
+import { getMethodology, MethodologyId } from "@/config/methodologies";
+import { useProgress } from "@/components/ui/progress-bar";
 
 export default function ProjectPage({ params }: { params: { id: string } }) {
     const router = useRouter();
     const { userId } = useAuth();
+    const { start: startProgress } = useProgress();
     const [project, setProject] = useState<ProjectData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const navigateWithProgress = (path: string) => {
+        startProgress();
+        router.push(path);
+    };
 
     useEffect(() => {
         async function loadProject() {
@@ -55,19 +63,39 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             <div className="mt-6">
                 <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-gray-900">{project.name}</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-semibold text-gray-900">{project.name}</h1>
+                            {(() => {
+                                const methodology = getMethodology(project.methodology as MethodologyId);
+                                if (!methodology) return null;
+                                return (
+                                    <span className={`text-xs font-medium px-2 py-1 rounded ${methodology.color.bg} ${methodology.color.text}`}>
+                                        {methodology.name}
+                                    </span>
+                                );
+                            })()}
+                        </div>
                         {project.description && (
                             <p className="mt-2 text-gray-600">{project.description}</p>
                         )}
                     </div>
                     {userId && (
-                        <Button
-                            onClick={() => router.push(`/new/feature/${project.id}`)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Feature
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => navigateWithProgress(`/project/${project.id}/settings`)}
+                            >
+                                <Settings className="mr-2 h-4 w-4" />
+                                Settings
+                            </Button>
+                            <Button
+                                onClick={() => navigateWithProgress(`/new/feature/${project.id}`)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Feature
+                            </Button>
+                        </div>
                     )}
                 </div>
 
@@ -83,7 +111,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                             </p>
                             {userId && (
                                 <Button
-                                    onClick={() => router.push(`/new/feature/${project.id}`)}
+                                    onClick={() => navigateWithProgress(`/new/feature/${project.id}`)}
                                     variant="outline"
                                     className="mt-4"
                                 >
@@ -97,7 +125,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                             {project.features.map((feature) => (
                                 <div
                                     key={feature.id}
-                                    onClick={() => router.push(`/feature/${feature.id}`)}
+                                    onClick={() => navigateWithProgress(`/feature/${feature.id}`)}
                                     className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
                                 >
                                     <div className="flex items-start gap-3">

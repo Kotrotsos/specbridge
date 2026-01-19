@@ -288,6 +288,11 @@ export default function InterviewPage({ params }: InterviewPageProps) {
             initialDescription: description,
             action: "chat",
             specificationType: interview.specificationType,
+            // Include BABOK phase info if available
+            phase: interview.phase ? {
+              phaseNumber: interview.phase.phaseNumber,
+              phaseName: interview.phase.phaseName,
+            } : null,
           }),
         });
 
@@ -326,6 +331,35 @@ export default function InterviewPage({ params }: InterviewPageProps) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground-muted border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Interview not found - show error with guidance
+  if (!interview) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="max-w-md text-center p-8">
+          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Interview Not Found</h1>
+          <p className="text-gray-600 mb-6">
+            This interview doesn't exist or you don't have access to it.
+            Interviews must be created within a project and feature.
+          </p>
+          <div className="space-y-3">
+            <a
+              href="/"
+              className="block w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Go to Dashboard
+            </a>
+            <p className="text-sm text-gray-500">
+              To create a new interview, first create or select a project, then add a feature, and start an interview from there.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

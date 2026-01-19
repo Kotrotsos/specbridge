@@ -5,6 +5,7 @@ import { SUGGESTIONS_SYSTEM_PROMPT, buildSuggestionsPrompt } from "@/config/prom
 import { EXTRACTION_SYSTEM_PROMPT, buildExtractionPrompt } from "@/config/prompts/extraction";
 import { ArtifactType } from "@/lib/db";
 import { SpecificationType } from "@/config/methodologies";
+import { getPhaseSystemPrompt, PhaseNumber } from "@/config/babok-phases";
 
 export interface ChatMessage {
   role: "assistant" | "user";
@@ -20,6 +21,11 @@ interface ChatRequestBody {
   settings?: {
     diagramType?: "flowchart" | "sequence";
   };
+  // BABOK phase information (optional)
+  phase?: {
+    phaseNumber: number;
+    phaseName: string;
+  } | null;
 }
 
 // Artifact-specific extraction prompts
@@ -234,11 +240,21 @@ ${extractionPrompt}`;
           content: m.content,
         }));
 
-        // Generate type-specific system prompt based on specification type
-        const { specificationType } = body;
-        const systemPrompt = specificationType
-          ? generateInterviewSystemPrompt(specificationType)
-          : INTERVIEW_SYSTEM_PROMPT;
+        // Generate type-specific system prompt based on specification type or BABOK phase
+        const { specificationType, phase } = body;
+
+        let systemPrompt: string;
+
+        if (phase?.phaseNumber) {
+          // BABOK phase-specific prompt takes priority
+          const phasePrompt = getPhaseSystemPrompt(phase.phaseNumber as PhaseNumber);
+          // Combine with base interview prompt for general interview skills
+          systemPrompt = `${phasePrompt}\n\n## General Interview Guidelines\n${INTERVIEW_SYSTEM_PROMPT}`;
+        } else if (specificationType) {
+          systemPrompt = generateInterviewSystemPrompt(specificationType);
+        } else {
+          systemPrompt = INTERVIEW_SYSTEM_PROMPT;
+        }
 
         // Generate the next response
         const response = await generateResponse(inputMessages, systemPrompt);

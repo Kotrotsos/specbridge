@@ -10,12 +10,14 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { METHODOLOGIES, getMethodology, MethodologyId } from "@/config/methodologies";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useProgress } from "@/components/ui/progress-bar";
 
 export function ProjectSidebar() {
     const { projects, isLoading, refresh } = useProjects();
     const router = useRouter();
     const pathname = usePathname();
     const { userId } = useAuth();
+    const { start: startProgress } = useProgress();
     const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
     const [expandedFeatures, setExpandedFeatures] = useState<Set<string>>(new Set());
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -137,15 +139,23 @@ export function ProjectSidebar() {
     };
 
     const handleCreateProject = () => {
+        startProgress();
         router.push("/new/project");
     };
 
     const handleNavigateToProject = (projectId: string) => {
+        startProgress();
         router.push(`/project/${projectId}`);
     };
 
     const handleNavigateToFeature = (featureId: string) => {
+        startProgress();
         router.push(`/feature/${featureId}`);
+    };
+
+    const handleNavigateToSpec = (specId: string) => {
+        startProgress();
+        router.push(`/interview/${specId}`);
     };
 
     const handleRename = (id: string, type: "project" | "feature", currentName: string) => {
@@ -593,7 +603,7 @@ export function ProjectSidebar() {
                                                         return (
                                                         <div
                                                             key={spec.id}
-                                                            onClick={() => router.push(`/interview/${spec.id}`)}
+                                                            onClick={() => handleNavigateToSpec(spec.id)}
                                                             className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer group ${
                                                                 isSelected
                                                                     ? `${methodology?.color.bg} ${methodology?.color.border} border`

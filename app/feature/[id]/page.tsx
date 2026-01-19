@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getFeature, FeatureData } from "@/app/actions/features";
 import { getFeaturePhases, PhaseData, updatePhaseStatus } from "@/app/actions/phases";
-import { BABOK_PHASES } from "@/config/babok-phases";
+import { createSpecification, addMessage } from "@/app/actions/specifications";
+import { BABOK_PHASES, getPhaseIntro, PhaseNumber } from "@/config/babok-phases";
+import { useProgress } from "@/components/ui/progress-bar";
 
 export default function FeaturePage({ params }: { params: { id: string } }) {
     const router = useRouter();
     const { userId } = useAuth();
+    const { start: startProgress } = useProgress();
     const [feature, setFeature] = useState<FeatureData | null>(null);
     const [phases, setPhases] = useState<PhaseData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -39,17 +42,56 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
         loadFeature();
     }, [params.id]);
 
-    const handleStartPhase = async (phaseId: string) => {
+    const handleStartPhase = async (phase: PhaseData) => {
+        if (!feature) return;
+        startProgress();
+
         try {
-            await updatePhaseStatus(phaseId, "in_progress");
-            // Refresh phases
+            // Check if there's already an interview for this phase
+            const existingSpec = feature.specifications?.find(s => s.phaseId === phase.id);
+
+            if (existingSpec) {
+                // Navigate to existing interview
+                router.push(`/interview/${existingSpec.id}`);
+                return;
+            }
+
+            // Update phase status to in_progress
+            await updatePhaseStatus(phase.id, "in_progress");
+
+            // Create a new interview for this phase
+            const phaseLabel = getPhaseLabel(phase.phaseName);
+            const newInterview = await createSpecification({
+                id: `phase-${phase.id}-${Date.now()}`,
+                featureId: feature.id,
+                phaseId: phase.id,
+                name: `${phaseLabel} Interview`,
+                initialDescription: `BABOK Phase ${phase.phaseNumber}: ${phaseLabel}`,
+                status: "in_progress",
+            });
+
+            // Add the phase intro message as the first assistant message
+            const introMessage = getPhaseIntro(phase.phaseNumber as PhaseNumber);
+            if (introMessage) {
+                await addMessage(newInterview.id, {
+                    id: `intro-${Date.now()}`,
+                    role: "assistant",
+                    content: introMessage,
+                });
+            }
+
+            // Refresh data and navigate
             const phaseData = await getFeaturePhases(params.id);
             setPhases(phaseData);
-            // Navigate to interview for this phase
-            router.push(`/interview/new?featureId=${feature?.id}&phaseId=${phaseId}`);
+            router.push(`/interview/${newInterview.id}`);
         } catch (error) {
             console.error("Failed to start phase:", error);
         }
+    };
+
+    const navigateWithProgress = (path: string) => {
+        startProgress();
+        router.push(path);
     };
 
     const getPhaseLabel = (phaseName: string) => {
@@ -101,7 +143,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
                     </div>
                     {userId && (
                         <Button
-                            onClick={() => router.push(`/new/specification/${feature.id}`)}
+                            onClick={() => navigateWithProgress(`/new/specification/${feature.id}`)}
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
                             <Plus className="mr-2 h-4 w-4" />
@@ -115,12 +157,12 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
                     <div className="mt-8">
                         <h2 className="text-lg font-medium text-gray-900 mb-4">BABOK Phases</h2>
                         <div className="grid gap-3">
-                            {phases.map((phase, idx) => {
+                            {phases.map((phase) => {
                                 const isComplete = phase.status === "complete";
                                 const isInProgress = phase.status === "in_progress";
                                 const isNotStarted = phase.status === "not_started";
-                                const prevPhase = idx > 0 ? phases[idx - 1] : null;
-                                const canStart = isNotStarted && (!prevPhase || prevPhase.status === "complete");
+                                // Allow starting any phase
+                                const canStart = isNotStarted;
 
                                 return (
                                     <div
@@ -179,7 +221,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
                                                 {userId && (isInProgress || canStart) && (
                                                     <Button
                                                         size="sm"
-                                                        onClick={() => handleStartPhase(phase.id)}
+                                                        onClick={() => handleStartPhase(phase)}
                                                         className={
                                                             isInProgress
                                                                 ? "bg-blue-600 hover:bg-blue-700 text-white"
@@ -221,7 +263,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
                             </p>
                             {userId && !isBabok && (
                                 <Button
-                                    onClick={() => router.push(`/new/specification/${feature.id}`)}
+                                    onClick={() => navigateWithProgress(`/new/specification/${feature.id}`)}
                                     variant="outline"
                                     className="mt-4"
                                 >
@@ -235,7 +277,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
                             {feature.specifications.map((spec) => (
                                 <div
                                     key={spec.id}
-                                    onClick={() => router.push(`/interview/${spec.id}`)}
+                                    onClick={() => navigateWithProgress(`/interview/${spec.id}`)}
                                     className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
                                 >
                                     <div className="flex items-start justify-between">

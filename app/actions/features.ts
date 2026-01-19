@@ -24,6 +24,7 @@ export interface FeatureData {
 export interface SpecificationSummary {
     id: string;
     featureId: string;
+    phaseId: string | null;
     name: string;
     status: string;
     order: number;
@@ -48,6 +49,7 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
                 select: {
                     id: true,
                     featureId: true,
+                    phaseId: true,
                     name: true,
                     status: true,
                     order: true,
@@ -76,6 +78,7 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
         specifications: feature.specifications.map((s) => ({
             id: s.id,
             featureId: s.featureId,
+            phaseId: s.phaseId,
             name: s.name,
             status: s.status,
             order: s.order,
@@ -205,6 +208,7 @@ export async function updateFeature(
                 select: {
                     id: true,
                     featureId: true,
+                    phaseId: true,
                     name: true,
                     status: true,
                     order: true,
@@ -228,6 +232,7 @@ export async function updateFeature(
         specifications: feature.specifications.map((s) => ({
             id: s.id,
             featureId: s.featureId,
+            phaseId: s.phaseId,
             name: s.name,
             status: s.status,
             order: s.order,

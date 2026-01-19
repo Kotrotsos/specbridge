@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { BABOK_PHASES } from "@/config/babok-phases";
 
 const FREE_TIER_PROJECT_LIMIT = 3;
 
@@ -411,4 +412,162 @@ export async function reorderProjects(projectIds: string[]): Promise<void> {
   );
 
   revalidatePath("/");
+}
+
+// Get methodology change impact
+export interface MethodologyChangeImpact {
+  currentMethodology: string;
+  newMethodology: string;
+  featureCount: number;
+  phasesWithData: number;
+  extractedItemsCount: number;
+  willCreatePhases: boolean;
+  willOrphanPhases: boolean;
+}
+
+export async function getMethodologyChangeImpact(
+  projectId: string,
+  newMethodology: string
+): Promise<MethodologyChangeImpact> {
+  const { userId, orgId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      OR: [
+        { userId, organizationId: null },
+        { organizationId: orgId },
+      ],
+    },
+    include: {
+      features: {
+        include: {
+          phases: {
+            include: {
+              _count: {
+                select: {
+                  specifications: true,
+                  extractedItems: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!project) throw new Error("Project not found");
+
+  const featureCount = project.features.length;
+  const allPhases = project.features.flatMap((f) => f.phases);
+  const phasesWithData = allPhases.filter(
+    (p) => p._count.specifications > 0 || p._count.extractedItems > 0 || p.status !== "not_started"
+  ).length;
+  const extractedItemsCount = allPhases.reduce((acc, p) => acc + p._count.extractedItems, 0);
+
+  return {
+    currentMethodology: project.methodology,
+    newMethodology,
+    featureCount,
+    phasesWithData,
+    extractedItemsCount,
+    willCreatePhases: newMethodology === "babok" && project.methodology !== "babok",
+    willOrphanPhases: project.methodology === "babok" && newMethodology !== "babok" && phasesWithData > 0,
+  };
+}
+
+// Change project methodology with proper handling
+export async function changeMethodology(
+  projectId: string,
+  newMethodology: string
+): Promise<ProjectData> {
+  const { userId, orgId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      OR: [
+        { userId, organizationId: null },
+        { organizationId: orgId },
+      ],
+    },
+    include: {
+      features: true,
+    },
+  });
+
+  if (!project) throw new Error("Project not found");
+
+  const oldMethodology = project.methodology;
+
+  // Update methodology
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { methodology: newMethodology },
+  });
+
+  // Handle BABOK transition
+  if (newMethodology === "babok" && oldMethodology !== "babok") {
+    // Create phases for all existing features
+    for (const feature of project.features) {
+      await prisma.phase.createMany({
+        data: BABOK_PHASES.map((phase) => ({
+          featureId: feature.id,
+          phaseNumber: phase.number,
+          phaseName: phase.name,
+          status: "not_started",
+          order: phase.number,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  // Note: When switching FROM babok, we keep the phases in DB
+  // They just won't be shown in the UI anymore
+  // This preserves data in case user switches back
+
+  revalidatePath("/");
+
+  // Return updated project
+  const updated = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      features: {
+        orderBy: { order: "asc" },
+        include: {
+          _count: {
+            select: { specifications: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!updated) throw new Error("Failed to update project");
+
+  return {
+    id: updated.id,
+    userId: updated.userId,
+    organizationId: updated.organizationId,
+    name: updated.name,
+    description: updated.description,
+    methodology: updated.methodology,
+    order: updated.order,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+    features: updated.features.map((f) => ({
+      id: f.id,
+      projectId: f.projectId,
+      name: f.name,
+      description: f.description,
+      order: f.order,
+      createdAt: f.createdAt.toISOString(),
+      updatedAt: f.updatedAt.toISOString(),
+      specificationCount: f._count.specifications,
+    })),
+  };
 }

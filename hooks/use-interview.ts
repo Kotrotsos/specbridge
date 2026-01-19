@@ -17,6 +17,7 @@ import {
 
 interface UseInterviewOptions {
   id: string;
+  featureId?: string;
   autoCreate?: boolean;
 }
 
@@ -36,10 +37,13 @@ interface UseInterviewReturn {
 
 /**
  * Hook for managing a single interview with PostgreSQL persistence
+ * Note: autoCreate is disabled by default - interviews must be created through proper flow
+ * If autoCreate is true, featureId is required
  */
 export function useInterview({
   id,
-  autoCreate = true,
+  featureId,
+  autoCreate = false,
 }: UseInterviewOptions): UseInterviewReturn {
   const [interview, setInterview] = useState<InterviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,9 +64,14 @@ export function useInterview({
       let data = await getInterview(id);
 
       if (!data && autoCreate) {
-        // Create new interview
+        // featureId is required for auto-create
+        if (!featureId) {
+          throw new Error("Cannot auto-create interview without a featureId. Interviews must be created within a feature.");
+        }
+        // Create new interview within the feature
         data = await createInterview({
           id,
+          featureId,
           title: "New Interview",
           initialDescription: "",
           status: "in_progress",
@@ -75,7 +84,7 @@ export function useInterview({
     } finally {
       setIsLoading(false);
     }
-  }, [id, autoCreate]);
+  }, [id, featureId, autoCreate]);
 
   useEffect(() => {
     loadInterview();
