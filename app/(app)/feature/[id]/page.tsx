@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Plus, FileText, Clock, Play, Check, ChevronRight } from "lucide-react";
@@ -12,7 +12,8 @@ import { createSpecification, addMessage } from "@/app/actions/specifications";
 import { BABOK_PHASES, getPhaseIntro, PhaseNumber } from "@/config/babok-phases";
 import { useProgress } from "@/components/ui/progress-bar";
 
-export default function FeaturePage({ params }: { params: { id: string } }) {
+export default function FeaturePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const { userId } = useAuth();
     const { start: startProgress } = useProgress();
@@ -25,7 +26,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
     useEffect(() => {
         async function loadFeature() {
             try {
-                const data = await getFeature(params.id);
+                const data = await getFeature(id);
                 setFeature(data);
 
                 // Load phases for BABOK projects
@@ -40,7 +41,7 @@ export default function FeaturePage({ params }: { params: { id: string } }) {
             }
         }
         loadFeature();
-    }, [params.id]);
+    }, [id]);
 
     const handleStartPhase = async (phase: PhaseData) => {
         if (!feature) return;

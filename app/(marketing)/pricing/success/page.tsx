@@ -14,7 +14,7 @@ export default function PricingSuccessPage() {
             setCountdown((prev) => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    router.push("/");
+                    router.push("/dashboard");
                     return 0;
                 }
                 return prev - 1;
@@ -38,7 +38,7 @@ export default function PricingSuccessPage() {
                     Your organization has been upgraded. You now have access to all Pro features.
                 </p>
 
-                <Button onClick={() => router.push("/")} className="w-full">
+                <Button onClick={() => router.push("/dashboard")} className="w-full">
                     Go to Dashboard
                 </Button>
 

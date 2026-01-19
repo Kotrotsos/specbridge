@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Plus, Layers, FileText, Settings } from "lucide-react";
@@ -10,7 +10,8 @@ import { getProject, ProjectData } from "@/app/actions/projects";
 import { getMethodology, MethodologyId } from "@/config/methodologies";
 import { useProgress } from "@/components/ui/progress-bar";
 
-export default function ProjectPage({ params }: { params: { id: string } }) {
+export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const { userId } = useAuth();
     const { start: startProgress } = useProgress();
@@ -25,7 +26,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     useEffect(() => {
         async function loadProject() {
             try {
-                const data = await getProject(params.id);
+                const data = await getProject(id);
                 setProject(data);
             } catch (error) {
                 console.error("Failed to load project:", error);
@@ -34,7 +35,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             }
         }
         loadProject();
-    }, [params.id]);
+    }, [id]);
 
     if (isLoading) {
         return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { ArrowLeft, Layers } from "lucide-react";
 import { createFeature } from "@/app/actions/features";
 
-export default function NewFeaturePage({ params }: { params: { projectId: string } }) {
+export default function NewFeaturePage({ params }: { params: Promise<{ projectId: string }> }) {
+    const { projectId } = use(params);
     const router = useRouter();
     const { isLoaded, userId } = useAuth();
-    const { projectId } = params;
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");

@@ -13,8 +13,15 @@ import { ProgressProvider } from "@/components/ui/progress-bar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SpecBridge",
-  description: "Bridge the gap between domain experts and technical implementers",
+  title: "SpecBridge - Bridge the gap between experts and engineers",
+  description:
+    "AI-powered knowledge extraction that interviews domain experts in their language and translates their knowledge into diagrams, flowcharts, and formalized logic for technical teams.",
+  openGraph: {
+    title: "SpecBridge - Bridge the gap between experts and engineers",
+    description:
+      "AI-powered knowledge extraction that interviews domain experts in their language and translates their knowledge into diagrams, flowcharts, and formalized logic for technical teams.",
+    type: "website",
+  },
 };
 
 function Navbar() {

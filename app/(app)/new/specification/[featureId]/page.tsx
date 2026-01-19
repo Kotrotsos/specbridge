@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,10 @@ import { createSpecification } from "@/app/actions/specifications";
 import { getFeatureWithProject } from "@/app/actions/features";
 import { METHODOLOGIES, MethodologyId, SpecificationType, getMethodology, getDefaultSpecificationType } from "@/config/methodologies";
 
-export default function NewSpecificationPage({ params }: { params: { featureId: string } }) {
+export default function NewSpecificationPage({ params }: { params: Promise<{ featureId: string }> }) {
+    const { featureId } = use(params);
     const router = useRouter();
     const { isLoaded, userId } = useAuth();
-    const { featureId } = params;
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
