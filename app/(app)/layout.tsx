@@ -14,26 +14,12 @@ function Navbar() {
   return (
     <nav className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-6">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <span className="text-lg font-semibold text-foreground">SpecBridge</span>
         </Link>
-        <SignedIn>
-          <Link
-            href="/pricing"
-            className="text-sm text-foreground-secondary hover:text-foreground transition-colors"
-          >
-            Pricing
-          </Link>
-        </SignedIn>
       </div>
       <div className="flex items-center gap-4">
         <SignedOut>
-          <Link
-            href="/pricing"
-            className="text-sm text-foreground-secondary hover:text-foreground transition-colors"
-          >
-            Pricing
-          </Link>
           <SignInButton mode="modal">
             <button className="rounded-[8px] bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors">
               Sign in
