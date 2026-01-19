@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useProjects } from "@/hooks/use-projects";
 import { updateProject, deleteProject, reorderProjects } from "@/app/actions/projects";
 import { updateFeature, deleteFeature, reorderFeatures } from "@/app/actions/features";
+import { deleteSpecification } from "@/app/actions/specifications";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { METHODOLOGIES, getMethodology, MethodologyId } from "@/config/methodologies";
@@ -22,7 +23,7 @@ export function ProjectSidebar() {
     const [editingMethodologyId, setEditingMethodologyId] = useState<string | null>(null);
     const [deleteDialog, setDeleteDialog] = useState<{
         isOpen: boolean;
-        type: "project" | "feature";
+        type: "project" | "feature" | "specification";
         id: string;
         name: string;
         specCount: number;
@@ -169,7 +170,7 @@ export function ProjectSidebar() {
     };
 
     const openDeleteDialog = (
-        type: "project" | "feature",
+        type: "project" | "feature" | "specification",
         id: string,
         name: string,
         specCount: number = 0,
@@ -190,15 +191,18 @@ export function ProjectSidebar() {
         try {
             if (deleteDialog.type === "project") {
                 await deleteProject(deleteDialog.id);
-            } else {
+            } else if (deleteDialog.type === "feature") {
                 await deleteFeature(deleteDialog.id);
+            } else {
+                await deleteSpecification(deleteDialog.id);
             }
             await refresh();
             closeDeleteDialog();
             // Navigate to home if we deleted the currently selected item
             if (
                 (deleteDialog.type === "project" && selectedProjectId === deleteDialog.id) ||
-                (deleteDialog.type === "feature" && selectedFeatureId === deleteDialog.id)
+                (deleteDialog.type === "feature" && selectedFeatureId === deleteDialog.id) ||
+                (deleteDialog.type === "specification" && selectedSpecId === deleteDialog.id)
             ) {
                 router.push("/");
             }
@@ -224,11 +228,13 @@ export function ProjectSidebar() {
                 return `This will permanently delete the project "${deleteDialog.name}" and all its contents:\n\n${parts.join(" and ")}\n\nThis action cannot be undone.`;
             }
             return `This will permanently delete the project "${deleteDialog.name}".\n\nThis action cannot be undone.`;
-        } else {
+        } else if (deleteDialog.type === "feature") {
             if (deleteDialog.specCount > 0) {
                 return `This will permanently delete the feature "${deleteDialog.name}" and its ${deleteDialog.specCount} specification${deleteDialog.specCount !== 1 ? "s" : ""}.\n\nThis action cannot be undone.`;
             }
             return `This will permanently delete the feature "${deleteDialog.name}".\n\nThis action cannot be undone.`;
+        } else {
+            return `This will permanently delete the interview "${deleteDialog.name}" and all its messages.\n\nThis action cannot be undone.`;
         }
     };
 
@@ -594,17 +600,17 @@ export function ProjectSidebar() {
                                                                     : "hover:bg-gray-200"
                                                             }`}
                                                         >
-                                                            <FileText className="w-3.5 h-3.5 text-gray-500" />
+                                                            <FileText className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                                                             <span className="flex-1 text-sm text-gray-600 truncate hover:text-blue-600">
                                                                 {spec.name}
                                                             </span>
                                                             {specTypeConfig && specTypes.length > 1 && (
-                                                                <span className={`text-[10px] px-1 py-0.5 rounded ${methodology?.color.bg} ${methodology?.color.text}`}>
+                                                                <span className={`text-[10px] px-1 py-0.5 rounded flex-shrink-0 ${methodology?.color.bg} ${methodology?.color.text}`}>
                                                                     {specTypeConfig.name.split(' ')[0]}
                                                                 </span>
                                                             )}
                                                             <span
-                                                                className={`text-xs px-1.5 py-0.5 rounded ${
+                                                                className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
                                                                     spec.status === "complete"
                                                                         ? "bg-green-100 text-green-700"
                                                                         : "bg-yellow-100 text-yellow-700"
@@ -612,6 +618,18 @@ export function ProjectSidebar() {
                                                             >
                                                                 {spec.status === "complete" ? "Done" : "WIP"}
                                                             </span>
+                                                            {userId && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openDeleteDialog("specification", spec.id, spec.name);
+                                                                    }}
+                                                                    className="p-1 hover:bg-red-200 rounded opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                                                    title="Delete"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3 text-red-600" />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     )})}
                                                 </div>
@@ -630,7 +648,7 @@ export function ProjectSidebar() {
                 isOpen={deleteDialog?.isOpen ?? false}
                 onClose={closeDeleteDialog}
                 onConfirm={confirmDelete}
-                title={`Delete ${deleteDialog?.type === "project" ? "Project" : "Feature"}?`}
+                title={`Delete ${deleteDialog?.type === "project" ? "Project" : deleteDialog?.type === "feature" ? "Feature" : "Interview"}?`}
                 description={getDeleteDescription()}
                 confirmLabel="Delete"
                 cancelLabel="Cancel"

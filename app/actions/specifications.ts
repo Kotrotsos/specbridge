@@ -369,8 +369,12 @@ export async function deleteSpecification(id: string): Promise<void> {
     include: { feature: { include: { project: true } } }
   });
 
-  if (!existingSpec || !existingSpec.feature || !existingSpec.feature.project) {
-    throw new Error("Unauthorized");
+  if (!existingSpec) {
+    throw new Error("Specification not found");
+  }
+
+  if (!existingSpec.feature || !existingSpec.feature.project) {
+    throw new Error("Specification has invalid structure");
   }
 
   // Verify access: either org matches or personal project matches user
