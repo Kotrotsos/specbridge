@@ -431,31 +431,29 @@ export function ProjectSidebar() {
 
                                             {/* Progress indicator for multi-type methodologies */}
                                             {showProgress && (
-                                                <div className="ml-6 mt-1 mb-1">
-                                                    <div className="flex items-center gap-0.5">
+                                                <div className="ml-6 mt-2 mb-2">
+                                                    <div className="flex items-center">
                                                         {specTypes.map((specType, idx) => {
                                                             const isComplete = completedTypes.has(specType.id);
                                                             const isInProgress = inProgressTypes.has(specType.id);
                                                             return (
                                                                 <div key={specType.id} className="flex items-center">
                                                                     <div
-                                                                        className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
                                                                             isComplete
-                                                                                ? `${methodology?.color.bg} ${methodology?.color.text}`
+                                                                                ? "bg-gray-100 border-gray-300 text-gray-500"
                                                                                 : isInProgress
-                                                                                    ? "bg-yellow-100 text-yellow-600"
-                                                                                    : "bg-gray-100 text-gray-400"
+                                                                                    ? "bg-white border-gray-300 text-gray-400"
+                                                                                    : "bg-gray-50 border-gray-200 text-gray-300"
                                                                         }`}
                                                                         title={`${specType.name}: ${isComplete ? "Complete" : isInProgress ? "In Progress" : "Not Started"}`}
                                                                     >
-                                                                        {isComplete ? (
-                                                                            <Check className="w-2.5 h-2.5" />
-                                                                        ) : (
-                                                                            <span className="text-[8px] font-medium">{idx + 1}</span>
+                                                                        {isComplete && (
+                                                                            <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                                                                         )}
                                                                     </div>
                                                                     {idx < specTypes.length - 1 && (
-                                                                        <div className={`w-1.5 h-0.5 ${isComplete ? methodology?.color.bg : "bg-gray-200"}`} />
+                                                                        <span className="text-gray-300 mx-0.5">-</span>
                                                                     )}
                                                                 </div>
                                                             );
