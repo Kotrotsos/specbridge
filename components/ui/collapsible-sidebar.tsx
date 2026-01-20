@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { PanelLeft, PanelRight, Pin, PinOff, ChevronLeft, ChevronRight } from "lucide-react";
+import { PanelLeft, PanelRight, Pin, PinOff } from "lucide-react";
 
 interface CollapsibleSidebarProps {
   children: React.ReactNode;
@@ -38,6 +38,7 @@ export function CollapsibleSidebar({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const edgeHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load state from localStorage
   useEffect(() => {
@@ -115,54 +116,82 @@ export function CollapsibleSidebar({
   // Determine if sidebar should be visible
   const isVisible = state.pinned ? !state.collapsed : (isHovered || isResizing);
 
-  // Collapsed trigger bar for unpinned mode
-  const CollapsedTrigger = () => (
-    <div
-      className={`absolute top-0 ${side === "left" ? "left-0" : "right-0"} h-full w-2 z-40
-        bg-transparent hover:bg-foreground/5 transition-colors cursor-pointer`}
-      onMouseEnter={handleMouseEnter}
-    />
-  );
+  // Handle edge hover for unpinned collapsed sidebar
+  const handleEdgeHoverStart = useCallback(() => {
+    if (edgeHoverTimeoutRef.current) {
+      clearTimeout(edgeHoverTimeoutRef.current);
+    }
+    // Open after 500ms of hovering at the edge
+    edgeHoverTimeoutRef.current = setTimeout(() => {
+      setIsHovered(true);
+    }, 500);
+  }, []);
 
-  // Toggle button for collapsed state (pinned mode)
-  const CollapseToggle = ({ forCollapsed = false }: { forCollapsed?: boolean }) => {
-    if (!state.pinned) return null;
-    // Only show when appropriate
-    if (forCollapsed && !state.collapsed) return null;
-    if (!forCollapsed && state.collapsed) return null;
+  const handleEdgeHoverEnd = useCallback(() => {
+    if (edgeHoverTimeoutRef.current) {
+      clearTimeout(edgeHoverTimeoutRef.current);
+      edgeHoverTimeoutRef.current = null;
+    }
+  }, []);
 
-    const Icon = state.collapsed
-      ? (side === "left" ? ChevronRight : ChevronLeft)
-      : (side === "left" ? ChevronLeft : ChevronRight);
+  // Cleanup edge hover timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (edgeHoverTimeoutRef.current) {
+        clearTimeout(edgeHoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
-    return (
-      <button
-        onClick={toggleCollapse}
-        className={`absolute top-4 z-50
-          ${side === "left" ? "-right-3" : "-left-3"}
-          w-6 h-10 flex items-center justify-center
-          bg-background border border-border rounded-full shadow-sm
-          hover:bg-foreground/5 transition-colors`}
-        title={state.collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        <Icon className="w-4 h-4 text-foreground-muted" />
-      </button>
-    );
-  };
+  // Expand sidebar (for both pinned collapsed and unpinned modes)
+  const expandSidebar = useCallback(() => {
+    if (state.pinned) {
+      setState(prev => ({ ...prev, collapsed: false }));
+    } else {
+      setIsHovered(true);
+    }
+  }, [state.pinned]);
+
+  // Check if sidebar is in collapsed state (either pinned+collapsed or unpinned+hidden)
+  const isCollapsedState = (state.pinned && state.collapsed) || (!state.pinned && !isVisible);
 
   return (
-    <div className="relative h-full flex-shrink-0">
-      {/* Collapsed trigger for unpinned mode */}
-      {!state.pinned && !isVisible && <CollapsedTrigger />}
+    <div className="relative h-full flex-shrink-0 flex">
+      {/* Collapsed state: show thin bar with expand button */}
+      {isCollapsedState && (
+        <div
+          className={`h-full flex-shrink-0 relative flex items-start pt-4 justify-center
+            bg-background border-border
+            ${side === "left" ? "border-r" : "border-l"}
+          `}
+          style={{ width: 32 }}
+          onMouseEnter={handleEdgeHoverStart}
+          onMouseLeave={handleEdgeHoverEnd}
+        >
+          <button
+            onClick={expandSidebar}
+            className="w-6 h-6 flex items-center justify-center
+              rounded-md
+              hover:bg-foreground/10 transition-colors cursor-pointer"
+            title="Expand sidebar"
+          >
+            {side === "left" ? (
+              <PanelLeft className="w-4 h-4 text-foreground-muted" />
+            ) : (
+              <PanelRight className="w-4 h-4 text-foreground-muted" />
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Main sidebar */}
       <div
         ref={sidebarRef}
         className={`h-full bg-background-sidebar border-border flex flex-col transition-all duration-200 ease-out
           ${side === "left" ? "border-r" : "border-l"}
-          ${!state.pinned ? "absolute top-0 z-50 shadow-xl" : "relative"}
+          ${!state.pinned && isVisible ? "absolute top-0 z-50 shadow-xl" : "relative"}
           ${side === "left" ? "left-0" : "right-0"}
-          ${isVisible ? "opacity-100" : "opacity-0 pointer-events-none"}
+          ${isVisible ? "opacity-100" : "opacity-0 pointer-events-none w-0"}
         `}
         style={{
           width: isVisible ? state.width : 0,
@@ -217,17 +246,7 @@ export function CollapsibleSidebar({
             ${isResizing ? "bg-blue-500/50" : ""}`}
           onMouseDown={handleMouseDown}
         />
-
-        {/* Collapse toggle button (outside sidebar) - only when expanded */}
-        <CollapseToggle forCollapsed={false} />
       </div>
-
-      {/* Spacer for pinned collapsed state with toggle button */}
-      {state.pinned && state.collapsed && (
-        <div className={`w-8 h-full flex-shrink-0 relative bg-background-sidebar ${side === "left" ? "border-r" : "border-l"} border-border`}>
-          <CollapseToggle forCollapsed={true} />
-        </div>
-      )}
     </div>
   );
 }
