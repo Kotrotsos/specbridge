@@ -171,7 +171,7 @@ function ProblemSection() {
           </p>
         </div>
 
-        <div className="mt-16 grid md:grid-cols-3 gap-8">
+        <div className="mt-16 flex flex-col md:flex-row items-stretch justify-center gap-4 md:gap-0">
           {[
             {
               problem: "Experts struggle to articulate tacit knowledge",
@@ -185,15 +185,15 @@ function ProblemSection() {
               problem: "Knowledge gets lost between meetings",
               solution: "Everything captured and structured automatically",
             },
-          ].map((item, i) => (
+          ].map((item, i, arr) => (
             <div
               key={i}
-              className={`transition-all duration-700 delay-${i * 100} ${
+              className={`flex items-center transition-all duration-700 ${
                 isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
               style={{ transitionDelay: `${i * 100}ms` }}
             >
-              <div className="bg-background rounded-2xl p-6 h-full border border-border hover:shadow-lg hover:shadow-foreground/5 transition-all">
+              <div className="bg-background rounded-2xl p-6 h-full border border-border hover:shadow-lg hover:shadow-foreground/5 transition-all flex-1 md:w-72">
                 <div className="text-foreground-muted line-through text-sm mb-3">
                   {item.problem}
                 </div>
@@ -202,6 +202,11 @@ function ProblemSection() {
                   {item.solution}
                 </div>
               </div>
+              {i < arr.length - 1 && (
+                <div className="hidden md:flex items-center justify-center w-12 flex-shrink-0">
+                  <ArrowRight className="h-5 w-5 text-foreground-muted" />
+                </div>
+              )}
             </div>
           ))}
         </div>
