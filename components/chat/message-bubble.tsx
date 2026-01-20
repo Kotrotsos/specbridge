@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import ReactMarkdown from "react-markdown";
 
 interface MessageBubbleProps {
   role: "assistant" | "user";
@@ -29,8 +30,8 @@ export function MessageBubble({ role, content, timestamp }: MessageBubbleProps) 
             SpecBridge
           </div>
         )}
-        <div className="whitespace-pre-wrap text-sm leading-relaxed">
-          {content}
+        <div className="prose prose-sm max-w-none text-foreground prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:text-foreground prose-strong:text-foreground prose-a:text-blue-600">
+          <ReactMarkdown>{content}</ReactMarkdown>
         </div>
         {timestamp && (
           <div className="mt-2 text-xs text-foreground-muted">

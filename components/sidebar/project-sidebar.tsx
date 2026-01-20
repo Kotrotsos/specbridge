@@ -266,14 +266,14 @@ export function ProjectSidebar() {
 
     if (isLoading) {
         return (
-            <div className="w-64 border-r border-gray-200 bg-gray-50 p-4">
+            <div className="h-full p-4">
                 <div className="text-sm text-gray-500">Loading...</div>
             </div>
         );
     }
 
     return (
-        <div className="w-64 border-r border-gray-200 bg-gray-50 flex flex-col h-screen">
+        <div className="flex flex-col h-full">
             {/* Header */}
             <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">Projects</h2>

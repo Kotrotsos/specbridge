@@ -18,12 +18,12 @@ import {
   X,
   Pencil,
 } from "lucide-react";
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
 import { ChatContainer, Message } from "@/components/chat/chat-container";
 import { useInterview } from "@/hooks/use-interview";
 import { ArtifactType, ArtifactData } from "@/app/actions/specifications";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { ArtifactsPanelWrapper } from "@/components/ui/collapsible-sidebar";
 import clsx from "clsx";
 
 interface InterviewPageProps {
@@ -417,9 +417,6 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   // Studio panel - list view
   const studioListView = (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-border px-4 py-3">
-        <h2 className="text-sm font-medium text-foreground">Studio</h2>
-      </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
         {/* Artifact type grid */}
         <div className="grid grid-cols-2 gap-2 mb-6">
@@ -578,18 +575,16 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   })();
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] bg-background">
-      <PanelGroup orientation="horizontal" id="interview-panels" className="h-full">
-        <Panel defaultSize={60} minSize={40} className="h-full">
-          {chatPanel}
-        </Panel>
-        <PanelResizeHandle className="w-1.5 bg-border hover:bg-foreground-muted transition-colors flex items-center justify-center group">
-          <div className="w-1 h-8 rounded-full bg-foreground-muted/50 group-hover:bg-foreground-muted transition-colors" />
-        </PanelResizeHandle>
-        <Panel defaultSize={40} minSize={25} className="h-full">
-          {selectedArtifact ? studioDetailView : studioListView}
-        </Panel>
-      </PanelGroup>
+    <div className="h-[calc(100vh-3.5rem)] bg-background flex overflow-hidden">
+      {/* Chat Panel */}
+      <div className="flex-1 h-full min-w-0">
+        {chatPanel}
+      </div>
+
+      {/* Studio Panel */}
+      <ArtifactsPanelWrapper>
+        {selectedArtifact ? studioDetailView : studioListView}
+      </ArtifactsPanelWrapper>
 
       {/* Settings Modal */}
       {settingsModalType && (
