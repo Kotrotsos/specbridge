@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><head><style>
+
+html { background: #FAFAF8; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 720pt; height: 405pt; margin: 0; padding: 0; font-family: Arial, sans-serif; background: #FAFAF8; display: flex; flex-direction: column; }
+
+body { padding: 36pt 44pt; }
+.header { display: flex; align-items: center; margin-bottom: 22pt; }
+.accent { width: 4pt; height: 28pt; background: #0D9488; margin-right: 14pt; border-radius: 2pt; }
+h1 { font-size: 34pt; color: #0F172A; font-weight: bold; }
+.tiers { display: flex; gap: 16pt; margin-bottom: 24pt; }
+.tier { flex: 1; background: #FFFFFF; border-radius: 10pt; padding: 18pt 16pt; text-align: center; border: 1pt solid #E2E8F0; }
+.tier.highlight { border: 2pt solid #0D9488; position: relative; }
+.tier.highlight::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4pt; background: #0D9488; border-radius: 8pt 8pt 0 0; }
+.tier-name { font-size: 14pt; font-weight: bold; color: #0F172A; margin-bottom: 8pt; }
+.tier-price { font-size: 28pt; font-weight: bold; color: #0D9488; margin-bottom: 8pt; }
+.tier-desc { font-size: 11pt; color: #334155; }
+.metrics { display: flex; gap: 24pt; justify-content: center; background: #0F172A; border-radius: 10pt; padding: 20pt 30pt; }
+.metric { text-align: center; }
+.metric-value { font-size: 24pt; font-weight: bold; color: #0D9488; margin-bottom: 4pt; }
+.metric-label { font-size: 11pt; color: rgba(255,255,255,0.7); }
+</style></head><body>
+<div class="header">
+  <div class="accent"></div>
+  <h1>Business Model</h1>
+</div>
+<div class="tiers">
+  <div class="tier">
+    <p class="tier-name">Free</p>
+    <p class="tier-price">$0</p>
+    <p class="tier-desc">3 projects, basic exports</p>
+  </div>
+  <div class="tier highlight">
+    <p class="tier-name">Pro</p>
+    <p class="tier-price">$19/mo</p>
+    <p class="tier-desc">Unlimited projects, all formats</p>
+  </div>
+  <div class="tier">
+    <p class="tier-name">Enterprise</p>
+    <p class="tier-price">Custom</p>
+    <p class="tier-desc">SSO, compliance, dedicated support</p>
+  </div>
+</div>
+<div class="metrics">
+  <div class="metric"><p class="metric-value">85%</p><p class="metric-label">Gross Margin</p></div>
+  <div class="metric"><p class="metric-value">$2,400</p><p class="metric-label">Target LTV</p></div>
+  <div class="metric"><p class="metric-value">$50</p><p class="metric-label">Target CAC</p></div>
+  <div class="metric"><p class="metric-value">48:1</p><p class="metric-label">LTV:CAC</p></div>
+</div>
+</body></html>

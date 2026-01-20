@@ -52,15 +52,26 @@ export interface FeatureData {
 export async function getAllProjects(): Promise<ProjectData[]> {
   const { userId, orgId } = await auth();
 
+  // Debug logging for production
+  console.log("[getAllProjects] Auth context:", { userId: userId ?? "null", orgId: orgId ?? "null" });
+
+  // If no userId, return empty (not authenticated)
+  if (!userId) {
+    console.log("[getAllProjects] No userId, returning empty");
+    return [];
+  }
+
   // Build the where clause based on whether user is in an organization or not
   let whereClause = {};
   if (orgId) {
     // User is in an organization context - show organization projects
     whereClause = { organizationId: orgId };
-  } else if (userId) {
+  } else {
     // User is in personal context - show personal projects (no org)
     whereClause = { userId, organizationId: null };
   }
+
+  console.log("[getAllProjects] Where clause:", JSON.stringify(whereClause));
 
   const projects = await prisma.project.findMany({
     where: whereClause,
@@ -229,6 +240,9 @@ export async function createProject(data: {
 }): Promise<ProjectData> {
   const { userId, orgId, has } = await auth();
 
+  // Debug logging
+  console.log("[createProject] Auth context:", { userId: userId ?? "null", orgId: orgId ?? "null" });
+
   if (!userId) {
     throw new Error("Unauthorized");
   }
@@ -269,6 +283,12 @@ export async function createProject(data: {
     include: {
       features: true,
     },
+  });
+
+  console.log("[createProject] Created project:", {
+    id: project.id,
+    userId: project.userId,
+    organizationId: project.organizationId
   });
 
   revalidatePath("/");

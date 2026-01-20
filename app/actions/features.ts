@@ -101,6 +101,8 @@ export async function createFeature(
 ): Promise<FeatureData> {
     const { userId, orgId } = await auth();
 
+    console.log("[createFeature] Auth context:", { userId: userId ?? "null", orgId: orgId ?? "null", projectId });
+
     if (!userId) {
         throw new Error("Unauthorized");
     }
@@ -108,16 +110,25 @@ export async function createFeature(
     // Check project ownership (must match current context: org or personal)
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) {
-        throw new Error("Unauthorized");
+        console.log("[createFeature] Project not found:", projectId);
+        throw new Error("Project not found");
     }
+
+    console.log("[createFeature] Project found:", {
+        id: project.id,
+        userId: project.userId,
+        organizationId: project.organizationId
+    });
 
     // Verify access: either org matches or personal project matches user
     const hasAccess = orgId
         ? project.organizationId === orgId
         : project.userId === userId && !project.organizationId;
 
+    console.log("[createFeature] Access check:", { hasAccess, orgId: orgId ?? "null", projectOrgId: project.organizationId ?? "null" });
+
     if (!hasAccess) {
-        throw new Error("Unauthorized");
+        throw new Error("Unauthorized - access denied");
     }
 
     // Get the highest order number for this project
