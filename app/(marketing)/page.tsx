@@ -12,6 +12,8 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { ParticleField } from "@/components/ui/particle-field";
+import { AnimatedDemo } from "@/components/marketing/animated-demo";
 
 // Hook for scroll-triggered animations
 function useScrollAnimation(threshold = 0.1) {
@@ -68,6 +70,14 @@ function HeroSection() {
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Subtle gradient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-background-sidebar" />
+
+      {/* Scan lines animation */}
+      <ParticleField
+        lineCount={35}
+        color="26, 26, 26"
+        maxOpacity={0.12}
+        mouseInfluence={300}
+      />
 
       {/* Floating decorative elements with parallax */}
       <div
@@ -379,10 +389,9 @@ function HowItWorksSection() {
   );
 }
 
-// Product Demo Section - Visual preview of the interface
+// Product Demo Section - Animated preview of the interface
 function ProductDemoSection() {
   const { ref, isVisible } = useScrollAnimation();
-  const { ref: parallaxRef, offset } = useParallax(0.15);
 
   return (
     <section ref={ref} className="py-24 overflow-hidden">
@@ -400,114 +409,16 @@ function ProductDemoSection() {
           </p>
         </div>
 
-        {/* Mock interface */}
         <div
-          ref={parallaxRef}
           className={`relative transition-all duration-1000 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
           }`}
-          style={{ transform: `translateY(${-offset * 0.3}px)` }}
         >
-          <div className="bg-background-card rounded-2xl border border-border shadow-2xl shadow-foreground/10 overflow-hidden">
-            {/* Browser chrome */}
-            <div className="bg-background-sidebar border-b border-border px-4 py-3 flex items-center gap-2">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-foreground/20" />
-                <div className="w-3 h-3 rounded-full bg-foreground/20" />
-                <div className="w-3 h-3 rounded-full bg-foreground/20" />
-              </div>
-              <div className="flex-1 flex justify-center">
-                <div className="bg-background rounded-lg px-4 py-1 text-xs text-foreground-muted">
-                  specbridge.ai/interview
-                </div>
-              </div>
-            </div>
-
-            {/* Interface mockup */}
-            <div className="flex h-[500px]">
-              {/* Chat panel */}
-              <div className="flex-1 border-r border-border p-6 flex flex-col">
-                <div className="text-sm text-foreground-muted mb-4">Interview Chat</div>
-                <div className="flex-1 space-y-4">
-                  {/* AI message */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-foreground-secondary" />
-                    </div>
-                    <div className="bg-background-sidebar rounded-2xl rounded-tl-sm p-4 max-w-md">
-                      <p className="text-sm text-foreground">
-                        What happens when a discount request exceeds the maximum allowed percentage?
-                      </p>
-                    </div>
-                  </div>
-                  {/* User message */}
-                  <div className="flex gap-3 justify-end">
-                    <div className="bg-foreground text-background rounded-2xl rounded-tr-sm p-4 max-w-md">
-                      <p className="text-sm">
-                        It goes to a manager for approval. They can either approve it or suggest a lower discount.
-                      </p>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-foreground/10 flex-shrink-0" />
-                  </div>
-                  {/* AI follow-up */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-foreground-secondary" />
-                    </div>
-                    <div className="bg-background-sidebar rounded-2xl rounded-tl-sm p-4 max-w-md">
-                      <p className="text-sm text-foreground">
-                        What is the maximum percentage a manager can approve without escalating further?
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 bg-background-sidebar rounded-xl p-3 flex items-center gap-2">
-                  <div className="flex-1 text-sm text-foreground-muted">Type your response...</div>
-                  <ArrowRight className="w-4 h-4 text-foreground-muted" />
-                </div>
-              </div>
-
-              {/* Artifacts panel */}
-              <div className="w-[45%] bg-background-sidebar/50 p-6">
-                <div className="text-sm text-foreground-muted mb-4">Generated Artifacts</div>
-                <div className="space-y-3">
-                  {[
-                    { name: "Process Overview", status: "complete" },
-                    { name: "Decision Flowchart", status: "complete" },
-                    { name: "Business Rules", status: "generating" },
-                    { name: "Edge Cases", status: "pending" },
-                  ].map((artifact, i) => (
-                    <div
-                      key={i}
-                      className="bg-background rounded-xl p-4 border border-border flex items-center gap-3"
-                    >
-                      <FileText className="w-4 h-4 text-foreground-secondary" />
-                      <span className="flex-1 text-sm text-foreground">{artifact.name}</span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          artifact.status === "complete"
-                            ? "bg-green-100 text-green-700"
-                            : artifact.status === "generating"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-foreground/5 text-foreground-muted"
-                        }`}
-                      >
-                        {artifact.status === "complete"
-                          ? "Ready"
-                          : artifact.status === "generating"
-                          ? "Generating..."
-                          : "Pending"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <AnimatedDemo />
 
           {/* Floating decoration */}
-          <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-foreground/5 rounded-full blur-2xl" />
-          <div className="absolute -top-4 -left-4 w-24 h-24 bg-foreground/5 rounded-full blur-2xl" />
+          <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-foreground/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -top-4 -left-4 w-24 h-24 bg-foreground/5 rounded-full blur-2xl pointer-events-none" />
         </div>
       </div>
     </section>
