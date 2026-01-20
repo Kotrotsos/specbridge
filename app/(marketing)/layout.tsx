@@ -200,7 +200,7 @@ function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="#"
+                  href="/privacy"
                   className="text-sm text-foreground-secondary hover:text-foreground transition-colors"
                 >
                   Privacy
@@ -208,7 +208,7 @@ function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/terms"
                   className="text-sm text-foreground-secondary hover:text-foreground transition-colors"
                 >
                   Terms
@@ -216,7 +216,7 @@ function Footer() {
               </li>
               <li>
                 <Link
-                  href="mailto:hello@specbridge.ai"
+                  href="/contact"
                   className="text-sm text-foreground-secondary hover:text-foreground transition-colors"
                 >
                   Contact
