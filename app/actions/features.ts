@@ -34,6 +34,8 @@ export interface SpecificationSummary {
 
 // Get a single feature with its specifications
 export async function getFeature(id: string): Promise<FeatureData | null> {
+    console.log("[getFeature] Looking for feature:", id);
+
     const feature = await prisma.feature.findUnique({
         where: { id },
         include: {
@@ -59,6 +61,8 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
             },
         },
     });
+
+    console.log("[getFeature] Result:", feature ? { id: feature.id, name: feature.name } : "NOT FOUND");
 
     if (!feature) return null;
 
@@ -146,6 +150,8 @@ export async function createFeature(
             order: (maxOrder?.order ?? -1) + 1,
         },
     });
+
+    console.log("[createFeature] Created feature:", { id: feature.id, name: feature.name, projectId: feature.projectId });
 
     // Auto-create phases for BABOK projects
     if (project.methodology === "babok") {

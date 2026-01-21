@@ -68,16 +68,34 @@ export async function GET(request: Request) {
         userId: true,
         organizationId: true,
         createdAt: true,
+        features: {
+          select: {
+            id: true,
+            name: true,
+            createdAt: true,
+          },
+        },
         _count: {
           select: { features: true },
         },
       },
     });
 
+    const allFeatures = await prisma.feature.findMany({
+      select: {
+        id: true,
+        name: true,
+        projectId: true,
+        createdAt: true,
+      },
+    });
+
     return NextResponse.json({
       currentAuth: { userId, orgId },
       totalProjects: allProjects.length,
+      totalFeatures: allFeatures.length,
       projects: allProjects,
+      features: allFeatures,
     });
   } catch (error) {
     console.error("[cleanup] Error:", error);
