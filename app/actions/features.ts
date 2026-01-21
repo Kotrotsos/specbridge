@@ -124,12 +124,19 @@ export async function createFeature(
         organizationId: project.organizationId
     });
 
-    // Verify access: either org matches or personal project matches user
-    const hasAccess = orgId
-        ? project.organizationId === orgId
-        : project.userId === userId && !project.organizationId;
+    // Verify access: user owns the project OR is in the project's org
+    // More permissive check to handle context switching
+    const hasAccess =
+        project.userId === userId ||
+        (orgId && project.organizationId === orgId);
 
-    console.log("[createFeature] Access check:", { hasAccess, orgId: orgId ?? "null", projectOrgId: project.organizationId ?? "null" });
+    console.log("[createFeature] Access check:", {
+        hasAccess,
+        currentUserId: userId,
+        currentOrgId: orgId ?? "null",
+        projectUserId: project.userId,
+        projectOrgId: project.organizationId ?? "null"
+    });
 
     if (!hasAccess) {
         throw new Error("Unauthorized - access denied");

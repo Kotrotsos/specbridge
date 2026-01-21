@@ -61,11 +61,17 @@ export async function getAllProjects(): Promise<ProjectData[]> {
     return [];
   }
 
-  // Build the where clause based on whether user is in an organization or not
-  let whereClause = {};
+  // Build the where clause - show projects the user owns OR projects in their current org
+  // This is more permissive to handle context switching issues
+  let whereClause: any = {};
   if (orgId) {
-    // User is in an organization context - show organization projects
-    whereClause = { organizationId: orgId };
+    // User is in an organization context - show org projects AND user's personal projects
+    whereClause = {
+      OR: [
+        { organizationId: orgId },
+        { userId, organizationId: null },
+      ],
+    };
   } else {
     // User is in personal context - show personal projects (no org)
     whereClause = { userId, organizationId: null };
