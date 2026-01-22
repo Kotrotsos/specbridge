@@ -61,21 +61,14 @@ export async function getAllProjects(): Promise<ProjectData[]> {
     return [];
   }
 
-  // Build the where clause - show projects the user owns OR projects in their current org
-  // This is more permissive to handle context switching issues
-  let whereClause: any = {};
-  if (orgId) {
-    // User is in an organization context - show org projects AND user's personal projects
-    whereClause = {
-      OR: [
-        { organizationId: orgId },
-        { userId, organizationId: null },
-      ],
-    };
-  } else {
-    // User is in personal context - show personal projects (no org)
-    whereClause = { userId, organizationId: null };
-  }
+  // FIXED: Show ALL projects the user owns, regardless of org context
+  // Plus any projects in the current org (for team members who didn't create them)
+  const whereClause: any = {
+    OR: [
+      { userId }, // All projects this user created (any org or personal)
+      ...(orgId ? [{ organizationId: orgId }] : []), // Plus projects in current org
+    ],
+  };
 
   console.log("[getAllProjects] Where clause:", JSON.stringify(whereClause));
 
@@ -173,11 +166,9 @@ export async function checkProjectLimit(): Promise<ProjectLimitInfo> {
   // The feature/plan names should match what you configure in Clerk Dashboard
   const isPro = has?.({ plan: "pro" }) || has?.({ feature: "unlimited_projects" }) || false;
 
-  // Count projects based on context (org or personal)
+  // Count ALL projects owned by this user (regardless of org context)
   const projectCount = await prisma.project.count({
-    where: orgId
-      ? { organizationId: orgId }
-      : { userId, organizationId: null },
+    where: { userId },
   });
 
   if (isPro) {
@@ -257,10 +248,9 @@ export async function createProject(data: {
   const isPro = has?.({ plan: "pro" }) || has?.({ feature: "unlimited_projects" }) || false;
 
   if (!isPro) {
+    // Count ALL projects owned by this user
     const projectCount = await prisma.project.count({
-      where: orgId
-        ? { organizationId: orgId }
-        : { userId, organizationId: null },
+      where: { userId },
     });
 
     if (projectCount >= FREE_TIER_PROJECT_LIMIT) {
@@ -270,9 +260,7 @@ export async function createProject(data: {
 
   // Get the highest order number for this context (org or personal)
   const maxOrder = await prisma.project.findFirst({
-    where: orgId
-      ? { organizationId: orgId }
-      : { userId, organizationId: null },
+    where: { userId },
     orderBy: { order: "desc" },
     select: { order: true },
   });
