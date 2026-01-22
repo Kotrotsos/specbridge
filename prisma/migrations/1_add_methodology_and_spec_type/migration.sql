@@ -1,5 +1,5 @@
-[38;2;61;123;123;03m-- Add methodology column to Project table[39;00m
-[38;2;0;128;0;01mALTER[39;00m[38;2;187;187;187m [39m[38;2;0;128;0;01mTABLE[39;00m[38;2;187;187;187m [39m[38;2;186;33;33m"[39m[38;2;186;33;33mProject[39m[38;2;186;33;33m"[39m[38;2;187;187;187m [39m[38;2;0;128;0;01mADD[39;00m[38;2;187;187;187m [39m[38;2;0;128;0;01mCOLUMN[39;00m[38;2;187;187;187m [39m[38;2;186;33;33m"[39m[38;2;186;33;33mmethodology[39m[38;2;186;33;33m"[39m[38;2;187;187;187m [39mTEXT[38;2;187;187;187m [39m[38;2;0;128;0;01mNOT[39;00m[38;2;187;187;187m [39m[38;2;136;0;0mNULL[39m[38;2;187;187;187m [39m[38;2;0;128;0;01mDEFAULT[39;00m[38;2;187;187;187m [39m[38;2;186;33;33m'[39m[38;2;186;33;33magile[39m[38;2;186;33;33m'[39m;
+-- Add methodology column to Project table
+ALTER TABLE "Project" ADD COLUMN "methodology" TEXT NOT NULL DEFAULT 'agile';
 
-[38;2;61;123;123;03m-- Add specificationType column to Specification table[39;00m
-[38;2;0;128;0;01mALTER[39;00m[38;2;187;187;187m [39m[38;2;0;128;0;01mTABLE[39;00m[38;2;187;187;187m [39m[38;2;186;33;33m"[39m[38;2;186;33;33mSpecification[39m[38;2;186;33;33m"[39m[38;2;187;187;187m [39m[38;2;0;128;0;01mADD[39;00m[38;2;187;187;187m [39m[38;2;0;128;0;01mCOLUMN[39;00m[38;2;187;187;187m [39m[38;2;186;33;33m"[39m[38;2;186;33;33mspecificationType[39m[38;2;186;33;33m"[39m[38;2;187;187;187m [39mTEXT[38;2;187;187;187m [39m[38;2;0;128;0;01mNOT[39;00m[38;2;187;187;187m [39m[38;2;136;0;0mNULL[39m[38;2;187;187;187m [39m[38;2;0;128;0;01mDEFAULT[39;00m[38;2;187;187;187m [39m[38;2;186;33;33m'[39m[38;2;186;33;33muser_story[39m[38;2;186;33;33m'[39m;
+-- Add specificationType column to Specification table
+ALTER TABLE "Specification" ADD COLUMN "specificationType" TEXT NOT NULL DEFAULT 'user_story';
