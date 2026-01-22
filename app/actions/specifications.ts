@@ -206,10 +206,10 @@ export async function createSpecification(data: {
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? feature.project.organizationId === orgId
-    : feature.project.userId === userId && !feature.project.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    feature.project.userId === userId ||
+    (orgId && feature.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -284,10 +284,10 @@ export async function updateSpecification(
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? existingSpec.feature.project.organizationId === orgId
-    : existingSpec.feature.project.userId === userId && !existingSpec.feature.project.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    existingSpec.feature.project.userId === userId ||
+    (orgId && existingSpec.feature.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -397,10 +397,10 @@ export async function deleteSpecification(id: string): Promise<void> {
     throw new Error("Specification has invalid structure");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? existingSpec.feature.project.organizationId === orgId
-    : existingSpec.feature.project.userId === userId && !existingSpec.feature.project.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    existingSpec.feature.project.userId === userId ||
+    (orgId && existingSpec.feature.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -433,10 +433,10 @@ export async function reorderSpecifications(
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? feature.project.organizationId === orgId
-    : feature.project.userId === userId && !feature.project.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    feature.project.userId === userId ||
+    (orgId && feature.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -481,10 +481,10 @@ export async function addMessage(
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? spec.feature.project.organizationId === orgId
-    : spec.feature.project.userId === userId && !spec.feature.project.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    spec.feature.project.userId === userId ||
+    (orgId && spec.feature.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -541,10 +541,10 @@ export async function upsertArtifact(
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? spec.feature.project.organizationId === orgId
-    : spec.feature.project.userId === userId && !spec.feature.project.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    spec.feature.project.userId === userId ||
+    (orgId && spec.feature.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -609,10 +609,10 @@ export async function deleteArtifact(id: string): Promise<void> {
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? artifact.specification.feature.project.organizationId === orgId
-    : artifact.specification.feature.project.userId === userId && !artifact.specification.feature.project.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    artifact.specification.feature.project.userId === userId ||
+    (orgId && artifact.specification.feature.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");

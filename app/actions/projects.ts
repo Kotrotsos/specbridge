@@ -322,10 +322,10 @@ export async function updateProject(
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? existingProject.organizationId === orgId
-    : existingProject.userId === userId && !existingProject.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    existingProject.userId === userId ||
+    (orgId && existingProject.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -389,10 +389,10 @@ export async function deleteProject(id: string): Promise<void> {
     throw new Error("Unauthorized");
   }
 
-  // Verify access: either org matches or personal project matches user
-  const hasAccess = orgId
-    ? existingProject.organizationId === orgId
-    : existingProject.userId === userId && !existingProject.organizationId;
+  // Verify access: user owns the project OR is in the project's org
+  const hasAccess =
+    existingProject.userId === userId ||
+    (orgId && existingProject.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");

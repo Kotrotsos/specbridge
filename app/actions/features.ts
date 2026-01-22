@@ -211,10 +211,10 @@ export async function updateFeature(
         throw new Error("Unauthorized");
     }
 
-    // Verify access: either org matches or personal project matches user
-    const hasAccess = orgId
-        ? existingFeature.project.organizationId === orgId
-        : existingFeature.project.userId === userId && !existingFeature.project.organizationId;
+    // Verify access: user owns the project OR is in the project's org
+    const hasAccess =
+        existingFeature.project.userId === userId ||
+        (orgId && existingFeature.project.organizationId === orgId);
 
     if (!hasAccess) {
         throw new Error("Unauthorized");
@@ -284,10 +284,10 @@ export async function deleteFeature(id: string): Promise<void> {
         throw new Error("Unauthorized");
     }
 
-    // Verify access: either org matches or personal project matches user
-    const hasAccess = orgId
-        ? existingFeature.project.organizationId === orgId
-        : existingFeature.project.userId === userId && !existingFeature.project.organizationId;
+    // Verify access: user owns the project OR is in the project's org
+    const hasAccess =
+        existingFeature.project.userId === userId ||
+        (orgId && existingFeature.project.organizationId === orgId);
 
     if (!hasAccess) {
         throw new Error("Unauthorized");
@@ -316,10 +316,10 @@ export async function reorderFeatures(
         throw new Error("Unauthorized");
     }
 
-    // Verify access: either org matches or personal project matches user
-    const hasAccess = orgId
-        ? project.organizationId === orgId
-        : project.userId === userId && !project.organizationId;
+    // Verify access: user owns the project OR is in the project's org
+    const hasAccess =
+        project.userId === userId ||
+        (orgId && project.organizationId === orgId);
 
     if (!hasAccess) {
         throw new Error("Unauthorized");
@@ -359,10 +359,10 @@ export async function reorderSpecifications(
         throw new Error("Unauthorized");
     }
 
-    // Verify access: either org matches or personal project matches user
-    const hasAccess = orgId
-        ? feature.project.organizationId === orgId
-        : feature.project.userId === userId && !feature.project.organizationId;
+    // Verify access: user owns the project OR is in the project's org
+    const hasAccess =
+        feature.project.userId === userId ||
+        (orgId && feature.project.organizationId === orgId);
 
     if (!hasAccess) {
         throw new Error("Unauthorized");
