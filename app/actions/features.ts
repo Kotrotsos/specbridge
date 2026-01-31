@@ -26,6 +26,7 @@ export interface SpecificationSummary {
     featureId: string;
     phaseId: string | null;
     name: string;
+    initialDescription: string;
     status: string;
     order: number;
     createdAt: string;
@@ -53,6 +54,7 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
                     featureId: true,
                     phaseId: true,
                     name: true,
+                    initialDescription: true,
                     status: true,
                     order: true,
                     createdAt: true,
@@ -86,6 +88,7 @@ export async function getFeature(id: string): Promise<FeatureData | null> {
             name: s.name,
             status: s.status,
             order: s.order,
+            initialDescription: s.initialDescription,
             createdAt: s.createdAt.toISOString(),
             updatedAt: s.updatedAt.toISOString(),
         })),
@@ -234,6 +237,7 @@ export async function updateFeature(
                     featureId: true,
                     phaseId: true,
                     name: true,
+                    initialDescription: true,
                     status: true,
                     order: true,
                     createdAt: true,
@@ -258,6 +262,7 @@ export async function updateFeature(
             featureId: s.featureId,
             phaseId: s.phaseId,
             name: s.name,
+            initialDescription: s.initialDescription,
             status: s.status,
             order: s.order,
             createdAt: s.createdAt.toISOString(),
