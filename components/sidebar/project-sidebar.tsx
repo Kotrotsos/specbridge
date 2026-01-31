@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, Settings, Check, X } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useProjects } from "@/hooks/use-projects";
 import { updateProject, deleteProject, reorderProjects } from "@/app/actions/projects";
@@ -79,6 +79,12 @@ export function ProjectSidebar() {
 
         if (selectedItem.type === "specification") {
             for (const project of projects) {
+                // Check standalone specs first
+                const standaloneSpec = project.specifications?.find(s => s.id === selectedItem.id);
+                if (standaloneSpec) {
+                    return { selectedProjectId: project.id, selectedFeatureId: null, selectedSpecId: standaloneSpec.id };
+                }
+                // Check specs under features
                 for (const feature of project.features) {
                     const spec = feature.specifications?.find(s => s.id === selectedItem.id);
                     if (spec) {
@@ -420,20 +426,11 @@ export function ProjectSidebar() {
                             {/* Features */}
                             {expandedProjects.has(project.id) && (
                                 <div className="ml-4 mt-1">
+                                    {project.features.length > 0 && (
+                                        <div className="text-xs text-gray-500 px-2 mb-1">Features</div>
+                                    )}
                                     {project.features.map((feature, featureIndex) => {
-                                        // Calculate progress for multi-type methodologies
                                         const specTypes = methodology?.specificationTypes || [];
-                                        const completedTypes = new Set(
-                                            feature.specifications
-                                                ?.filter(s => s.status === "complete")
-                                                .map(s => s.specificationType) || []
-                                        );
-                                        const inProgressTypes = new Set(
-                                            feature.specifications
-                                                ?.filter(s => s.status !== "complete")
-                                                .map(s => s.specificationType) || []
-                                        );
-                                        const showProgress = specTypes.length > 1 && (feature.specifications?.length ?? 0) > 0;
 
                                         return (
                                         <div key={feature.id} className="mb-1">
@@ -525,75 +522,6 @@ export function ProjectSidebar() {
                                                 )}
                                             </div>
 
-                                            {/* Progress indicator for BABOK phases */}
-                                            {project.methodology === "babok" && feature.phases && feature.phases.length > 0 && (
-                                                <div className="ml-6 mt-2 mb-2">
-                                                    <div className="flex items-center">
-                                                        {feature.phases.map((phase, idx) => {
-                                                            const isComplete = phase.status === "complete";
-                                                            const isInProgress = phase.status === "in_progress";
-                                                            const phaseLabels = ["C", "CS", "FS", "DR", "V"];
-                                                            return (
-                                                                <div key={phase.id} className="flex items-center">
-                                                                    <div
-                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center border-2 text-[10px] font-medium ${
-                                                                            isComplete
-                                                                                ? "bg-green-100 border-green-400 text-green-600"
-                                                                                : isInProgress
-                                                                                    ? "bg-blue-50 border-blue-400 text-blue-600"
-                                                                                    : "bg-gray-50 border-gray-200 text-gray-400"
-                                                                        }`}
-                                                                        title={`Phase ${phase.phaseNumber}: ${phase.phaseName.replace(/_/g, " ")} - ${phase.status.replace(/_/g, " ")}`}
-                                                                    >
-                                                                        {isComplete ? (
-                                                                            <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                                                                        ) : (
-                                                                            phaseLabels[idx] || phase.phaseNumber
-                                                                        )}
-                                                                    </div>
-                                                                    {idx < (feature.phases?.length ?? 0) - 1 && (
-                                                                        <span className={`mx-0.5 ${isComplete ? "text-green-300" : "text-gray-300"}`}>-</span>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Progress indicator for multi-type methodologies (non-BABOK) */}
-                                            {project.methodology !== "babok" && showProgress && (
-                                                <div className="ml-6 mt-2 mb-2">
-                                                    <div className="flex items-center">
-                                                        {specTypes.map((specType, idx) => {
-                                                            const isComplete = completedTypes.has(specType.id);
-                                                            const isInProgress = inProgressTypes.has(specType.id);
-                                                            return (
-                                                                <div key={specType.id} className="flex items-center">
-                                                                    <div
-                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
-                                                                            isComplete
-                                                                                ? "bg-gray-100 border-gray-300 text-gray-500"
-                                                                                : isInProgress
-                                                                                    ? "bg-white border-gray-300 text-gray-400"
-                                                                                    : "bg-gray-50 border-gray-200 text-gray-300"
-                                                                        }`}
-                                                                        title={`${specType.name}: ${isComplete ? "Complete" : isInProgress ? "In Progress" : "Not Started"}`}
-                                                                    >
-                                                                        {isComplete && (
-                                                                            <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-                                                                        )}
-                                                                    </div>
-                                                                    {idx < specTypes.length - 1 && (
-                                                                        <span className="text-gray-300 mx-0.5">-</span>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
                                             {/* Specifications - show when expanded or when only 1 spec */}
                                             {(expandedFeatures.has(feature.id) || (feature.specificationCount ?? 0) <= 1) && feature.specifications && feature.specifications.length > 0 && (
                                                 <div className="ml-6 mt-1 space-y-0.5">
@@ -646,6 +574,62 @@ export function ProjectSidebar() {
                                             )}
                                         </div>
                                     )})}
+
+                                    {/* Standalone Specifications (not under any feature) */}
+                                    {project.specifications && project.specifications.length > 0 && (
+                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                            <div className="text-xs text-gray-500 px-2 mb-1">Specifications</div>
+                                            <div className="space-y-0.5">
+                                                {project.specifications.map((spec) => {
+                                                    const specTypes = methodology?.specificationTypes || [];
+                                                    const specTypeConfig = specTypes.find(t => t.id === spec.specificationType);
+                                                    const isSelected = selectedSpecId === spec.id;
+                                                    return (
+                                                        <div
+                                                            key={spec.id}
+                                                            onClick={() => handleNavigateToSpec(spec.id)}
+                                                            className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer group ${
+                                                                isSelected
+                                                                    ? `${methodology?.color.bg} ${methodology?.color.border} border`
+                                                                    : "hover:bg-gray-200"
+                                                            }`}
+                                                        >
+                                                            <FileText className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                                                            <span className="flex-1 text-sm text-gray-600 truncate hover:text-blue-600">
+                                                                {spec.name}
+                                                            </span>
+                                                            {specTypeConfig && specTypes.length > 1 && (
+                                                                <span className={`text-[10px] px-1 py-0.5 rounded flex-shrink-0 ${methodology?.color.bg} ${methodology?.color.text}`}>
+                                                                    {specTypeConfig.name.split(' ')[0]}
+                                                                </span>
+                                                            )}
+                                                            <span
+                                                                className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
+                                                                    spec.status === "complete"
+                                                                        ? "bg-green-100 text-green-700"
+                                                                        : "bg-yellow-100 text-yellow-700"
+                                                                }`}
+                                                            >
+                                                                {spec.status === "complete" ? "Done" : "WIP"}
+                                                            </span>
+                                                            {userId && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openDeleteDialog("specification", spec.id, spec.name);
+                                                                    }}
+                                                                    className="p-1 hover:bg-red-200 rounded opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                                                    title="Delete"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3 text-red-600" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -120,13 +120,27 @@ export default function InterviewPage({ params }: InterviewPageProps) {
 
   // Build breadcrumb items from hierarchy
   const breadcrumbItems = useMemo(() => {
-    if (!interview?.feature) return [];
-    return [
-      { label: interview.feature.project.name, href: `/project/${interview.feature.project.id}` },
-      { label: interview.feature.name, href: `/feature/${interview.feature.id}` },
-      { label: title },
-    ];
-  }, [interview?.feature, title]);
+    if (!interview) return [];
+
+    // Standalone spec (no feature)
+    if (!interview.feature && interview.project) {
+      return [
+        { label: interview.project.name, href: `/project/${interview.project.id}` },
+        { label: title },
+      ];
+    }
+
+    // Spec under a feature
+    if (interview.feature) {
+      return [
+        { label: interview.feature.project.name, href: `/project/${interview.feature.project.id}` },
+        { label: interview.feature.name, href: `/feature/${interview.feature.id}` },
+        { label: title },
+      ];
+    }
+
+    return [];
+  }, [interview, title]);
 
   // Handle title edit
   const startEditingTitle = useCallback(() => {
@@ -377,6 +391,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
           </div>
         )}
         {/* Editable Title */}
+        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Specification</div>
         <div className="flex items-center gap-2">
           {isEditingTitle ? (
             <input
@@ -407,6 +422,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
           messages={messages}
           onSendMessage={sendMessage}
           isLoading={isSending}
+          specificationName={interview?.name || ""}
           initialDescription={interview?.initialDescription || ""}
           inputValue={inputValue}
           onInputChange={setInputValue}

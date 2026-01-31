@@ -17,6 +17,7 @@ interface ChatContainerProps {
   messages: Message[];
   onSendMessage: (message: string) => void;
   isLoading?: boolean;
+  specificationName?: string;
   initialDescription?: string;
   inputValue?: string;
   onInputChange?: (value: string) => void;
@@ -26,6 +27,7 @@ export function ChatContainer({
   messages,
   onSendMessage,
   isLoading = false,
+  specificationName,
   initialDescription,
   inputValue,
   onInputChange,
@@ -55,7 +57,11 @@ export function ChatContainer({
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         {!hasMessages ? (
-          <StarterPrompts onSelect={onSendMessage} />
+          <StarterPrompts
+            onSelect={onSendMessage}
+            specificationName={specificationName}
+            initialDescription={initialDescription}
+          />
         ) : (
           <div className="mx-auto flex max-w-2xl flex-col gap-4">
             {messages.map((message) => (

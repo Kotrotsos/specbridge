@@ -29,7 +29,8 @@ export interface ArtifactData {
 
 export interface SpecificationData {
   id: string;
-  featureId: string;
+  projectId: string;
+  featureId: string | null;
   name: string;
   initialDescription: string;
   specificationType: string;
@@ -40,6 +41,11 @@ export interface SpecificationData {
   order: number;
   createdAt: string;
   updatedAt: string;
+  project?: {
+    id: string;
+    name: string;
+    methodology: string;
+  };
   feature?: {
     id: string;
     name: string;
@@ -48,7 +54,7 @@ export interface SpecificationData {
       name: string;
       methodology: string;
     };
-  };
+  } | null;
   // BABOK phase information (if linked to a phase)
   phase?: {
     id: string;
@@ -74,6 +80,52 @@ export async function getAllSpecifications(featureId: string): Promise<Specifica
 
   return specifications.map((spec) => ({
     id: spec.id,
+    projectId: spec.projectId,
+    featureId: spec.featureId,
+    name: spec.name,
+    initialDescription: spec.initialDescription,
+    specificationType: spec.specificationType,
+    status: spec.status as SpecificationStatus,
+    messages: spec.messages.map((m) => ({
+      id: m.id,
+      role: m.role as MessageRole,
+      content: m.content,
+      timestamp: m.timestamp.toISOString(),
+    })),
+    artifacts: spec.artifacts.map((a) => ({
+      id: a.id,
+      type: a.type as ArtifactType,
+      title: a.title,
+      status: a.status as ArtifactStatus,
+      data: a.data as Record<string, unknown> | null,
+      error: a.error ?? undefined,
+      createdAt: a.createdAt.toISOString(),
+    })),
+    extractedKnowledge: spec.extractedKnowledge as object | null,
+    order: spec.order,
+    createdAt: spec.createdAt.toISOString(),
+    updatedAt: spec.updatedAt.toISOString(),
+  }));
+}
+
+// Get all standalone specifications for a project (not under any feature)
+export async function getProjectSpecifications(projectId: string): Promise<SpecificationData[]> {
+  const specifications = await prisma.specification.findMany({
+    where: { projectId, featureId: null },
+    include: {
+      messages: {
+        orderBy: { timestamp: "asc" },
+      },
+      artifacts: {
+        orderBy: { createdAt: "asc" },
+      },
+    },
+    orderBy: { order: "asc" },
+  });
+
+  return specifications.map((spec) => ({
+    id: spec.id,
+    projectId: spec.projectId,
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
@@ -106,6 +158,13 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
   const spec = await prisma.specification.findUnique({
     where: { id },
     include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          methodology: true,
+        },
+      },
       feature: {
         select: {
           id: true,
@@ -139,6 +198,7 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
 
   return {
     id: spec.id,
+    projectId: spec.projectId,
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
@@ -163,7 +223,12 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
     order: spec.order,
     createdAt: spec.createdAt.toISOString(),
     updatedAt: spec.updatedAt.toISOString(),
-    feature: {
+    project: {
+      id: spec.project.id,
+      name: spec.project.name,
+      methodology: spec.project.methodology,
+    },
+    feature: spec.feature ? {
       id: spec.feature.id,
       name: spec.feature.name,
       project: {
@@ -171,7 +236,7 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
         name: spec.feature.project.name,
         methodology: spec.feature.project.methodology,
       },
-    },
+    } : null,
     phase: spec.phase ? {
       id: spec.phase.id,
       phaseNumber: spec.phase.phaseNumber,
@@ -181,9 +246,11 @@ export async function getSpecification(id: string): Promise<SpecificationData | 
 }
 
 // Create a new specification
+// Can be created under a feature (featureId) or directly under a project (projectId)
 export async function createSpecification(data: {
   id: string;
-  featureId: string;
+  projectId?: string;  // Required if no featureId
+  featureId?: string;  // Optional - if provided, projectId is derived from feature
   phaseId?: string;
   name: string;
   initialDescription: string;
@@ -196,28 +263,60 @@ export async function createSpecification(data: {
     throw new Error("Unauthorized");
   }
 
-  // Check feature ownership
-  const feature = await prisma.feature.findUnique({
-    where: { id: data.featureId },
-    include: { project: true }
-  });
+  let projectId: string;
+  let featureId: string | null = null;
 
-  if (!feature || !feature.project) {
-    throw new Error("Unauthorized");
+  if (data.featureId) {
+    // Creating under a feature - get projectId from feature
+    const feature = await prisma.feature.findUnique({
+      where: { id: data.featureId },
+      include: { project: true }
+    });
+
+    if (!feature || !feature.project) {
+      throw new Error("Feature not found");
+    }
+
+    // Verify access
+    const hasAccess =
+      feature.project.userId === userId ||
+      (orgId && feature.project.organizationId === orgId);
+
+    if (!hasAccess) {
+      throw new Error("Unauthorized");
+    }
+
+    projectId = feature.projectId;
+    featureId = data.featureId;
+  } else if (data.projectId) {
+    // Creating directly under project (standalone spec)
+    const project = await prisma.project.findUnique({
+      where: { id: data.projectId }
+    });
+
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    // Verify access
+    const hasAccess =
+      project.userId === userId ||
+      (orgId && project.organizationId === orgId);
+
+    if (!hasAccess) {
+      throw new Error("Unauthorized");
+    }
+
+    projectId = data.projectId;
+  } else {
+    throw new Error("Either projectId or featureId must be provided");
   }
 
-  // Verify access: user owns the project OR is in the project's org
-  const hasAccess =
-    feature.project.userId === userId ||
-    (orgId && feature.project.organizationId === orgId);
-
-  if (!hasAccess) {
-    throw new Error("Unauthorized");
-  }
-
-  // Get the highest order number for this feature
+  // Get the highest order number for the scope (feature or project-level)
   const maxOrder = await prisma.specification.findFirst({
-    where: { featureId: data.featureId },
+    where: featureId
+      ? { featureId }
+      : { projectId, featureId: null },
     orderBy: { order: "desc" },
     select: { order: true },
   });
@@ -225,7 +324,8 @@ export async function createSpecification(data: {
   const spec = await prisma.specification.create({
     data: {
       id: data.id,
-      featureId: data.featureId,
+      projectId,
+      featureId,
       phaseId: data.phaseId ?? null,
       name: data.name,
       initialDescription: data.initialDescription,
@@ -243,6 +343,7 @@ export async function createSpecification(data: {
 
   return {
     id: spec.id,
+    projectId: spec.projectId,
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
@@ -266,6 +367,7 @@ export async function updateSpecification(
     specificationType: string;
     status: SpecificationStatus;
     extractedKnowledge: object | null;
+    featureId: string | null; // Allow moving to different feature or making standalone
   }>
 ): Promise<SpecificationData | null> {
   const { userId, orgId } = await auth();
@@ -274,23 +376,33 @@ export async function updateSpecification(
     throw new Error("Unauthorized");
   }
 
-  // Check ownership
+  // Check ownership via project
   const existingSpec = await prisma.specification.findUnique({
     where: { id },
-    include: { feature: { include: { project: true } } }
+    include: { project: true }
   });
 
-  if (!existingSpec || !existingSpec.feature || !existingSpec.feature.project) {
-    throw new Error("Unauthorized");
+  if (!existingSpec || !existingSpec.project) {
+    throw new Error("Specification not found");
   }
 
   // Verify access: user owns the project OR is in the project's org
   const hasAccess =
-    existingSpec.feature.project.userId === userId ||
-    (orgId && existingSpec.feature.project.organizationId === orgId);
+    existingSpec.project.userId === userId ||
+    (orgId && existingSpec.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
+  }
+
+  // If moving to a different feature, verify the feature belongs to the same project
+  if (data.featureId !== undefined && data.featureId !== null) {
+    const targetFeature = await prisma.feature.findUnique({
+      where: { id: data.featureId }
+    });
+    if (!targetFeature || targetFeature.projectId !== existingSpec.projectId) {
+      throw new Error("Target feature must belong to the same project");
+    }
   }
 
   // Transform data for Prisma (handle null for JSON fields)
@@ -304,12 +416,24 @@ export async function updateSpecification(
         ? Prisma.JsonNull
         : data.extractedKnowledge,
     }),
+    ...(data.featureId !== undefined && {
+      feature: data.featureId === null
+        ? { disconnect: true }
+        : { connect: { id: data.featureId } },
+    }),
   };
 
   const spec = await prisma.specification.update({
     where: { id },
     data: prismaData,
     include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          methodology: true,
+        },
+      },
       feature: {
         select: {
           id: true,
@@ -332,13 +456,14 @@ export async function updateSpecification(
     },
   });
 
-  // Revalidate to update sidebar when name changes
-  if (data.name !== undefined) {
+  // Revalidate to update sidebar when name or feature changes
+  if (data.name !== undefined || data.featureId !== undefined) {
     revalidatePath("/");
   }
 
   return {
     id: spec.id,
+    projectId: spec.projectId,
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,
@@ -363,7 +488,12 @@ export async function updateSpecification(
     order: spec.order,
     createdAt: spec.createdAt.toISOString(),
     updatedAt: spec.updatedAt.toISOString(),
-    feature: {
+    project: {
+      id: spec.project.id,
+      name: spec.project.name,
+      methodology: spec.project.methodology,
+    },
+    feature: spec.feature ? {
       id: spec.feature.id,
       name: spec.feature.name,
       project: {
@@ -371,7 +501,7 @@ export async function updateSpecification(
         name: spec.feature.project.name,
         methodology: spec.feature.project.methodology,
       },
-    },
+    } : null,
   };
 }
 
@@ -383,24 +513,24 @@ export async function deleteSpecification(id: string): Promise<void> {
     throw new Error("Unauthorized");
   }
 
-  // Check ownership
+  // Check ownership via project
   const existingSpec = await prisma.specification.findUnique({
     where: { id },
-    include: { feature: { include: { project: true } } }
+    include: { project: true }
   });
 
   if (!existingSpec) {
     throw new Error("Specification not found");
   }
 
-  if (!existingSpec.feature || !existingSpec.feature.project) {
+  if (!existingSpec.project) {
     throw new Error("Specification has invalid structure");
   }
 
   // Verify access: user owns the project OR is in the project's org
   const hasAccess =
-    existingSpec.feature.project.userId === userId ||
-    (orgId && existingSpec.feature.project.organizationId === orgId);
+    existingSpec.project.userId === userId ||
+    (orgId && existingSpec.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -471,20 +601,20 @@ export async function addMessage(
     throw new Error("Unauthorized");
   }
 
-  // Check ownership
+  // Check ownership via project
   const spec = await prisma.specification.findUnique({
     where: { id: specificationId },
-    include: { feature: { include: { project: true } } }
+    include: { project: true }
   });
 
-  if (!spec || !spec.feature || !spec.feature.project) {
-    throw new Error("Unauthorized");
+  if (!spec || !spec.project) {
+    throw new Error("Specification not found");
   }
 
   // Verify access: user owns the project OR is in the project's org
   const hasAccess =
-    spec.feature.project.userId === userId ||
-    (orgId && spec.feature.project.organizationId === orgId);
+    spec.project.userId === userId ||
+    (orgId && spec.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -531,20 +661,20 @@ export async function upsertArtifact(
     throw new Error("Unauthorized");
   }
 
-  // Check ownership
+  // Check ownership via project
   const spec = await prisma.specification.findUnique({
     where: { id: specificationId },
-    include: { feature: { include: { project: true } } }
+    include: { project: true }
   });
 
-  if (!spec || !spec.feature || !spec.feature.project) {
-    throw new Error("Unauthorized");
+  if (!spec || !spec.project) {
+    throw new Error("Specification not found");
   }
 
   // Verify access: user owns the project OR is in the project's org
   const hasAccess =
-    spec.feature.project.userId === userId ||
-    (orgId && spec.feature.project.organizationId === orgId);
+    spec.project.userId === userId ||
+    (orgId && spec.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -599,20 +729,20 @@ export async function deleteArtifact(id: string): Promise<void> {
     throw new Error("Unauthorized");
   }
 
-  // Check ownership via artifact -> spec -> feature -> project
+  // Check ownership via artifact -> spec -> project
   const artifact = await prisma.artifact.findUnique({
     where: { id },
-    include: { specification: { include: { feature: { include: { project: true } } } } }
+    include: { specification: { include: { project: true } } }
   });
 
-  if (!artifact || !artifact.specification || !artifact.specification.feature || !artifact.specification.feature.project) {
-    throw new Error("Unauthorized");
+  if (!artifact || !artifact.specification || !artifact.specification.project) {
+    throw new Error("Artifact not found");
   }
 
   // Verify access: user owns the project OR is in the project's org
   const hasAccess =
-    artifact.specification.feature.project.userId === userId ||
-    (orgId && artifact.specification.feature.project.organizationId === orgId);
+    artifact.specification.project.userId === userId ||
+    (orgId && artifact.specification.project.organizationId === orgId);
 
   if (!hasAccess) {
     throw new Error("Unauthorized");
@@ -640,10 +770,10 @@ async function getAllInterviewsLegacy(): Promise<SpecificationData[]> {
   let whereClause = {};
   if (orgId) {
     // User is in an organization context - show organization specs
-    whereClause = { feature: { project: { organizationId: orgId } } };
+    whereClause = { project: { organizationId: orgId } };
   } else {
     // User is in personal context - show personal specs (no org)
-    whereClause = { feature: { project: { userId, organizationId: null } } };
+    whereClause = { project: { userId, organizationId: null } };
   }
 
   const specifications = await prisma.specification.findMany({
@@ -661,6 +791,7 @@ async function getAllInterviewsLegacy(): Promise<SpecificationData[]> {
 
   return specifications.map((spec) => ({
     id: spec.id,
+    projectId: spec.projectId,
     featureId: spec.featureId,
     name: spec.name,
     initialDescription: spec.initialDescription,

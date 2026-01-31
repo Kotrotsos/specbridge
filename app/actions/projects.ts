@@ -18,6 +18,7 @@ export interface ProjectData {
   createdAt: string;
   updatedAt: string;
   features: FeatureData[];
+  specifications?: SpecificationSummary[]; // Standalone specs (not under any feature)
 }
 
 export interface SpecificationSummary {
@@ -102,6 +103,17 @@ export async function getAllProjects(): Promise<ProjectData[]> {
           },
         },
       },
+      specifications: {
+        where: { featureId: null }, // Only standalone specs
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          specificationType: true,
+          order: true,
+        },
+      },
     },
     orderBy: { order: "asc" },
   });
@@ -138,6 +150,13 @@ export async function getAllProjects(): Promise<ProjectData[]> {
         phaseName: p.phaseName,
         status: p.status,
       })),
+    })),
+    specifications: project.specifications.map((s) => ({
+      id: s.id,
+      name: s.name,
+      status: s.status,
+      specificationType: s.specificationType,
+      order: s.order,
     })),
   }));
 }
@@ -201,6 +220,17 @@ export async function getProject(id: string): Promise<ProjectData | null> {
           },
         },
       },
+      specifications: {
+        where: { featureId: null }, // Only standalone specs
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          specificationType: true,
+          order: true,
+        },
+      },
     },
   });
 
@@ -225,6 +255,13 @@ export async function getProject(id: string): Promise<ProjectData | null> {
       createdAt: f.createdAt.toISOString(),
       updatedAt: f.updatedAt.toISOString(),
       specificationCount: f._count.specifications,
+    })),
+    specifications: project.specifications.map((s) => ({
+      id: s.id,
+      name: s.name,
+      status: s.status,
+      specificationType: s.specificationType,
+      order: s.order,
     })),
   };
 }

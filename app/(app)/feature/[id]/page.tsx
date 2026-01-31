@@ -174,6 +174,7 @@ export default function FeaturePage({ params }: { params: Promise<{ id: string }
             <div className="mt-6">
                 <div className="flex items-start justify-between">
                     <div className="flex-1 mr-4">
+                        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Feature</div>
                         <EditableText
                             value={feature.name}
                             onSave={(val) => handleUpdateFeature("name", val)}

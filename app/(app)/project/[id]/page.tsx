@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { Plus, Layers, FileText, Settings } from "lucide-react";
+import { Plus, Layers, FileText, Settings, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getProject, ProjectData } from "@/app/actions/projects";
@@ -64,6 +64,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             <div className="mt-6">
                 <div className="flex items-start justify-between">
                     <div>
+                        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Project</div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-semibold text-gray-900">{project.name}</h1>
                             {(() => {
@@ -88,6 +89,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                             >
                                 <Settings className="mr-2 h-4 w-4" />
                                 Settings
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => navigateWithProgress(`/new/specification?projectId=${project.id}`)}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                New Specification
                             </Button>
                             <Button
                                 onClick={() => navigateWithProgress(`/new/feature/${project.id}`)}
@@ -149,6 +157,40 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         </div>
                     )}
                 </div>
+
+                {/* Standalone Specifications */}
+                {project.specifications && project.specifications.length > 0 && (
+                    <div className="mt-8">
+                        <h2 className="text-lg font-medium text-gray-900 mb-4">Specifications</h2>
+                        <div className="grid gap-4">
+                            {project.specifications.map((spec) => (
+                                <div
+                                    key={spec.id}
+                                    onClick={() => navigateWithProgress(`/interview/${spec.id}`)}
+                                    className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-green-100 rounded-lg">
+                                            <MessageSquare className="h-5 w-5 text-green-600" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-medium text-gray-900">{spec.name}</h3>
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <span className={`rounded-full px-2 py-0.5 text-xs ${
+                                                    spec.status === "complete"
+                                                        ? "bg-green-100 text-green-800"
+                                                        : "bg-yellow-100 text-yellow-800"
+                                                }`}>
+                                                    {spec.status === "complete" ? "Complete" : "In Progress"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

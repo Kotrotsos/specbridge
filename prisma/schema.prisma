@@ -22,6 +22,7 @@ model Project {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   features       Feature[]
+  specifications Specification[] // Direct specs (not under a feature)
   experts        ProjectExpert[]
 
   @@index([userId])
@@ -84,10 +85,13 @@ model Phase {
 }
 
 // Specification: Individual knowledge extraction session (formerly Interview)
+// Can belong to a Feature OR directly to a Project (standalone)
 model Specification {
   id                 String          @id @default(cuid())
-  featureId          String
-  feature            Feature         @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  projectId          String          // Required - links to project
+  project            Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  featureId          String?         // Optional - null means standalone spec
+  feature            Feature?        @relation(fields: [featureId], references: [id], onDelete: Cascade)
   phaseId            String?
   phase              Phase?          @relation(fields: [phaseId], references: [id])
   name               String
@@ -102,6 +106,7 @@ model Specification {
   artifacts          Artifact[]
   extractedItems     ExtractedItem[]
 
+  @@index([projectId])
   @@index([featureId])
   @@index([featureId, order])
   @@index([phaseId])

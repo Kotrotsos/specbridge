@@ -23,7 +23,7 @@ export interface FeatureData {
 
 export interface SpecificationSummary {
     id: string;
-    featureId: string;
+    featureId: string | null;
     phaseId: string | null;
     name: string;
     initialDescription: string;
