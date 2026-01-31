@@ -1,53 +1,158 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import mermaid from "mermaid";
+import { renderMermaid } from "beautiful-mermaid";
 import DOMPurify from "dompurify";
+import { Download, Maximize2 } from "lucide-react";
+
+export type MermaidTheme =
+  | "default"
+  | "tokyo-night"
+  | "catppuccin-mocha"
+  | "catppuccin-latte"
+  | "nord"
+  | "nord-light"
+  | "dracula"
+  | "github-light"
+  | "github-dark"
+  | "solarized-light"
+  | "solarized-dark";
 
 interface MermaidDiagramProps {
   chart: string;
   className?: string;
+  theme?: MermaidTheme;
 }
 
-// Track if mermaid has been initialized
-let mermaidInitialized = false;
+// Theme configurations matching beautiful-mermaid
+const THEMES: Record<MermaidTheme, { bg: string; fg: string; accent?: string; muted?: string; surface?: string; border?: string }> = {
+  default: {
+    bg: "#FFFFFF",
+    fg: "#1A1A1A",
+    accent: "#3B82F6",
+    muted: "#666666",
+    surface: "#F5F3EE",
+    border: "#E5E2DC",
+  },
+  "tokyo-night": {
+    bg: "#1a1b26",
+    fg: "#a9b1d6",
+    accent: "#7aa2f7",
+  },
+  "catppuccin-mocha": {
+    bg: "#1e1e2e",
+    fg: "#cdd6f4",
+    accent: "#cba6f7",
+  },
+  "catppuccin-latte": {
+    bg: "#eff1f5",
+    fg: "#4c4f69",
+    accent: "#8839ef",
+  },
+  nord: {
+    bg: "#2e3440",
+    fg: "#eceff4",
+    accent: "#88c0d0",
+  },
+  "nord-light": {
+    bg: "#eceff4",
+    fg: "#2e3440",
+    accent: "#5e81ac",
+  },
+  dracula: {
+    bg: "#282a36",
+    fg: "#f8f8f2",
+    accent: "#bd93f9",
+  },
+  "github-light": {
+    bg: "#ffffff",
+    fg: "#1f2328",
+    accent: "#0969da",
+  },
+  "github-dark": {
+    bg: "#0d1117",
+    fg: "#e6edf3",
+    accent: "#4493f8",
+  },
+  "solarized-light": {
+    bg: "#fdf6e3",
+    fg: "#657b83",
+    accent: "#268bd2",
+  },
+  "solarized-dark": {
+    bg: "#002b36",
+    fg: "#839496",
+    accent: "#268bd2",
+  },
+};
 
-// Initialize mermaid with all diagram types pre-registered
-async function initializeMermaid() {
-  if (mermaidInitialized) return;
+export const THEME_OPTIONS: { value: MermaidTheme; label: string }[] = [
+  { value: "default", label: "Default" },
+  { value: "github-light", label: "GitHub Light" },
+  { value: "github-dark", label: "GitHub Dark" },
+  { value: "tokyo-night", label: "Tokyo Night" },
+  { value: "dracula", label: "Dracula" },
+  { value: "nord", label: "Nord" },
+  { value: "nord-light", label: "Nord Light" },
+  { value: "catppuccin-mocha", label: "Catppuccin Mocha" },
+  { value: "catppuccin-latte", label: "Catppuccin Latte" },
+  { value: "solarized-light", label: "Solarized Light" },
+  { value: "solarized-dark", label: "Solarized Dark" },
+];
 
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: "neutral",
-    securityLevel: "strict",
-    flowchart: {
-      useMaxWidth: true,
-      htmlLabels: true,
-      curve: "basis",
-    },
-    sequence: {
-      useMaxWidth: true,
-      diagramMarginX: 50,
-      diagramMarginY: 10,
-      actorMargin: 50,
-      width: 150,
-      height: 65,
-      boxMargin: 10,
-      boxTextMargin: 5,
-      noteMargin: 10,
-      messageMargin: 35,
-    },
-  });
-
-  mermaidInitialized = true;
-}
-
-export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
+export function MermaidDiagram({ chart, className, theme = "default" }: MermaidDiagramProps) {
   const [error, setError] = useState<string | null>(null);
   const [sanitizedSvg, setSanitizedSvg] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [renderKey, setRenderKey] = useState(0);
   const retryCount = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const downloadSvg = () => {
+    if (!sanitizedSvg) return;
+    const blob = new Blob([sanitizedSvg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "diagram.svg";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const openInNewWindow = () => {
+    if (!sanitizedSvg) return;
+    const themeConfig = THEMES[theme];
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Diagram</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: ${themeConfig.bg};
+    }
+    svg {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  ${sanitizedSvg}
+</body>
+</html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  };
 
   useEffect(() => {
     const renderChart = async () => {
@@ -61,9 +166,6 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
       setError(null);
 
       try {
-        // Initialize mermaid (handles diagram type registration)
-        await initializeMermaid();
-
         // Normalize the chart: convert escaped newlines to actual newlines
         let normalizedChart = chart
           .replace(/\\n/g, "\n")
@@ -75,7 +177,6 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
         normalizedChart = normalizedChart.replace(
           /(\{[^}]+?)(\s*\n|\s*-->)/g,
           (match, openBrace, suffix) => {
-            // Only add closing brace if it's missing
             if (!openBrace.includes("}")) {
               return openBrace + "}" + suffix;
             }
@@ -85,16 +186,14 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
 
         console.log("[Mermaid] Rendering chart:", normalizedChart);
 
-        // Generate unique ID for this render
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
-        // Render the diagram
-        const { svg } = await mermaid.render(id, normalizedChart);
+        // Render with beautiful-mermaid using selected theme
+        const themeConfig = THEMES[theme];
+        const svg = await renderMermaid(normalizedChart, themeConfig);
 
         // Sanitize the SVG output with DOMPurify
         const cleanSvg = DOMPurify.sanitize(svg, {
           USE_PROFILES: { svg: true, svgFilters: true },
-          ADD_TAGS: ["foreignObject"],
+          ADD_TAGS: ["foreignObject", "style"],
         });
 
         setSanitizedSvg(cleanSvg);
@@ -104,11 +203,10 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
         console.error("[Mermaid] Render error:", err);
         const errorMessage = err instanceof Error ? err.message : "Failed to render diagram";
 
-        // Retry on chunk loading errors (up to 3 times)
-        if (errorMessage.includes("Loading chunk") && retryCount.current < 3) {
+        // Retry on transient errors (up to 3 times)
+        if (retryCount.current < 3) {
           retryCount.current++;
           console.log(`[Mermaid] Retrying render (attempt ${retryCount.current})...`);
-          // Wait a bit and retry
           setTimeout(() => renderChart(), 500 * retryCount.current);
           return;
         }
@@ -121,7 +219,7 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
     };
 
     renderChart();
-  }, [chart, renderKey]);
+  }, [chart, renderKey, theme]);
 
   const handleRetry = () => {
     retryCount.current = 0;
@@ -167,9 +265,28 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
   }
 
   return (
-    <div
-      className={className}
-      dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
-    />
+    <div className="relative group">
+      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        <button
+          onClick={openInNewWindow}
+          className="p-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+          title="Open in new window"
+        >
+          <Maximize2 className="h-4 w-4 text-gray-600" />
+        </button>
+        <button
+          onClick={downloadSvg}
+          className="p-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+          title="Download as SVG"
+        >
+          <Download className="h-4 w-4 text-gray-600" />
+        </button>
+      </div>
+      <div
+        ref={containerRef}
+        className={className}
+        dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
+      />
+    </div>
   );
 }

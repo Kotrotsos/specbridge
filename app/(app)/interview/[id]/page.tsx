@@ -18,7 +18,7 @@ import {
   X,
   Pencil,
 } from "lucide-react";
-import { MermaidDiagram } from "@/components/mermaid-diagram";
+import { MermaidDiagram, MermaidTheme, THEME_OPTIONS } from "@/components/mermaid-diagram";
 import { ChatContainer, Message } from "@/components/chat/chat-container";
 import { useInterview } from "@/hooks/use-interview";
 import { ArtifactType, ArtifactData } from "@/app/actions/specifications";
@@ -100,6 +100,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   // Settings modal state
   const [settingsModalType, setSettingsModalType] = useState<ArtifactType | null>(null);
   const [diagramType, setDiagramType] = useState<"flowchart" | "sequence">("flowchart");
+  const [diagramTheme, setDiagramTheme] = useState<MermaidTheme>("default");
 
   // Convert DB messages to UI messages
   const messages: Message[] = useMemo(() => {
@@ -539,6 +540,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   // Studio panel - detail view
   const studioDetailView = selectedArtifact && (() => {
     const outdated = isArtifactOutdated(selectedArtifact);
+    const isDiagram = selectedArtifact.type === "decision-tree";
     return (
       <div className="flex h-full flex-col">
         <div className="shrink-0 flex items-center gap-2 border-b border-border px-4 py-3">
@@ -548,7 +550,20 @@ export default function InterviewPage({ params }: InterviewPageProps) {
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <h2 className="text-sm font-medium text-foreground">{selectedArtifact.title}</h2>
+          <h2 className="text-sm font-medium text-foreground flex-1">{selectedArtifact.title}</h2>
+          {isDiagram && (
+            <select
+              value={diagramTheme}
+              onChange={(e) => setDiagramTheme(e.target.value as MermaidTheme)}
+              className="px-2 py-1 rounded-[6px] border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {THEME_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         {outdated && (
           <div className="shrink-0 flex items-center justify-between bg-amber-50 border-b border-amber-200 px-4 py-2">
@@ -568,7 +583,7 @@ export default function InterviewPage({ params }: InterviewPageProps) {
           </div>
         )}
         <div className="flex-1 min-h-0 overflow-y-auto p-4">
-          <ArtifactContent artifact={selectedArtifact} onAskQuestion={askQuestion} />
+          <ArtifactContent artifact={selectedArtifact} onAskQuestion={askQuestion} diagramTheme={diagramTheme} />
         </div>
       </div>
     );
@@ -644,6 +659,26 @@ export default function InterviewPage({ params }: InterviewPageProps) {
                       </div>
                     </div>
                   </label>
+
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Theme
+                    </label>
+                    <select
+                      value={diagramTheme}
+                      onChange={(e) => setDiagramTheme(e.target.value as MermaidTheme)}
+                      className="w-full px-3 py-2 rounded-[8px] border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {THEME_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1.5 text-xs text-foreground-muted">
+                      Choose a color theme for the diagram
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -672,10 +707,12 @@ export default function InterviewPage({ params }: InterviewPageProps) {
 // Artifact content renderer
 function ArtifactContent({
   artifact,
-  onAskQuestion
+  onAskQuestion,
+  diagramTheme,
 }: {
   artifact: ArtifactData;
   onAskQuestion?: (question: string) => void;
+  diagramTheme?: MermaidTheme;
 }) {
   if (!artifact.data) {
     return (
@@ -691,7 +728,7 @@ function ArtifactContent({
     case "overview":
       return <OverviewContent data={data} />;
     case "decision-tree":
-      return <DecisionTreeContent data={data} />;
+      return <DecisionTreeContent data={data} theme={diagramTheme} />;
     case "rules":
       return <RulesContent data={data} />;
     case "variables":
@@ -907,7 +944,7 @@ function OverviewContent({ data }: { data: Record<string, unknown> }) {
 }
 
 // Decision Tree content
-function DecisionTreeContent({ data }: { data: Record<string, unknown> }) {
+function DecisionTreeContent({ data, theme }: { data: Record<string, unknown>; theme?: MermaidTheme }) {
   const tree = data.decisionTree as {
     mermaid?: string;
     description?: string;
@@ -927,7 +964,7 @@ function DecisionTreeContent({ data }: { data: Record<string, unknown> }) {
         <p className="text-sm text-foreground-secondary">{tree.description}</p>
       )}
       <div className="rounded-[8px] border border-border bg-background-card p-4">
-        <MermaidDiagram chart={tree.mermaid} className="flex justify-center" />
+        <MermaidDiagram chart={tree.mermaid} className="flex justify-center" theme={theme} />
       </div>
     </div>
   );
