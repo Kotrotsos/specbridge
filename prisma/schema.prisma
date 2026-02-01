@@ -104,29 +104,48 @@ model Phase {
 // Specification: Individual knowledge extraction session (formerly Interview)
 // Can belong to a Feature OR directly to a Project (standalone)
 model Specification {
-  id                 String          @id @default(cuid())
-  projectId          String          // Required - links to project
-  project            Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  featureId          String?         // Optional - null means standalone spec
-  feature            Feature?        @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  id                 String                   @id @default(cuid())
+  projectId          String                   // Required - links to project
+  project            Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  featureId          String?                  // Optional - null means standalone spec
+  feature            Feature?                 @relation(fields: [featureId], references: [id], onDelete: Cascade)
   phaseId            String?
-  phase              Phase?          @relation(fields: [phaseId], references: [id])
+  phase              Phase?                   @relation(fields: [phaseId], references: [id])
   name               String
-  initialDescription String          @default("")
-  specificationType  String          @default("user_story") // user_story, business_requirement, functional_requirement, etc.
-  status             String          @default("in_progress") // in_progress, complete
+  initialDescription String                   @default("")
+  specificationType  String                   @default("user_story") // user_story, business_requirement, functional_requirement, etc.
+  status             String                   @default("in_progress") // in_progress, complete
   extractedKnowledge Json?
-  order              Int             @default(0)  // For manual sorting
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  order              Int                      @default(0)  // For manual sorting
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
   messages           Message[]
   artifacts          Artifact[]
   extractedItems     ExtractedItem[]
+  documents          SpecificationDocument[]
 
   @@index([projectId])
   @@index([featureId])
   @@index([featureId, order])
   @@index([phaseId])
+}
+
+// SpecificationDocument: Uploaded documents (PDF, DOCX, TXT) for a specification
+model SpecificationDocument {
+  id              String        @id @default(cuid())
+  specificationId String
+  specification   Specification @relation(fields: [specificationId], references: [id], onDelete: Cascade)
+  fileName        String
+  fileType        String        // pdf, txt, docx
+  fileSize        Int           // Size in bytes
+  storageKey      String        // R2 object key
+  extractedText   String?       @db.Text
+  status          String        @default("uploaded") // uploaded, processing, extracted, error
+  error           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([specificationId])
 }
 
 // ExtractedItem: Tagged knowledge extracted from BABOK interviews

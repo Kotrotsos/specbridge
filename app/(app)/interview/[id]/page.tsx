@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef, use } from "react";
+import { useState, useCallback, useMemo, useRef, use, useEffect } from "react";
 import {
   FileText,
   GitBranch,
@@ -24,6 +24,8 @@ import { useInterview } from "@/hooks/use-interview";
 import { ArtifactType, ArtifactData } from "@/app/actions/specifications";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArtifactsPanelWrapper } from "@/components/ui/collapsible-sidebar";
+import { DocumentUpload } from "@/components/document-upload";
+import { getSpecificationDocuments, SpecificationDocumentData } from "@/app/actions/specification-documents";
 import clsx from "clsx";
 
 interface InterviewPageProps {
@@ -101,6 +103,18 @@ export default function InterviewPage({ params }: InterviewPageProps) {
   const [settingsModalType, setSettingsModalType] = useState<ArtifactType | null>(null);
   const [diagramType, setDiagramType] = useState<"flowchart" | "sequence">("flowchart");
   const [diagramTheme, setDiagramTheme] = useState<MermaidTheme>("default");
+
+  // Documents state
+  const [documents, setDocuments] = useState<SpecificationDocumentData[]>([]);
+
+  // Load documents when interview loads
+  useEffect(() => {
+    if (interview?.id) {
+      getSpecificationDocuments(interview.id)
+        .then(setDocuments)
+        .catch(console.error);
+    }
+  }, [interview?.id]);
 
   // Convert DB messages to UI messages
   const messages: Message[] = useMemo(() => {
@@ -550,6 +564,13 @@ export default function InterviewPage({ params }: InterviewPageProps) {
           </div>
         )}
       </div>
+
+      {/* Document Upload Section */}
+      <DocumentUpload
+        specificationId={id}
+        documents={documents}
+        onDocumentsChange={setDocuments}
+      />
     </div>
   );
 
