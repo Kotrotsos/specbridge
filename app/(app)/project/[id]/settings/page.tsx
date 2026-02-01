@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import {
 } from "@/app/actions/projects";
 import { METHODOLOGIES, MethodologyId, getMethodology } from "@/config/methodologies";
 
-export default function ProjectSettingsPage({ params }: { params: { id: string } }) {
+export default function ProjectSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [project, setProject] = useState<ProjectData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +35,7 @@ export default function ProjectSettingsPage({ params }: { params: { id: string }
     useEffect(() => {
         async function loadProject() {
             try {
-                const data = await getProject(params.id);
+                const data = await getProject(id);
                 if (data) {
                     setProject(data);
                     setName(data.name);
@@ -48,7 +49,7 @@ export default function ProjectSettingsPage({ params }: { params: { id: string }
             }
         }
         loadProject();
-    }, [params.id]);
+    }, [id]);
 
     const handleMethodologySelect = useCallback(async (newMethodology: MethodologyId) => {
         if (!project || newMethodology === project.methodology) {

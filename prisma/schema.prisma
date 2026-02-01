@@ -12,23 +12,40 @@ datasource db {
 
 // Project: Top-level container for organizing features
 model Project {
-  id             String          @id @default(cuid())
-  userId         String?         // Clerk user ID (for personal projects when no org)
-  organizationId String?         // Clerk organization ID (for org-scoped projects)
+  id             String            @id @default(cuid())
+  userId         String?           // Clerk user ID (for personal projects when no org)
+  organizationId String?           // Clerk organization ID (for org-scoped projects)
   name           String
   description    String?
-  methodology    String          @default("agile") // agile, babok, ieee, custom
-  order          Int             @default(0)  // For manual sorting
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  methodology    String            @default("agile") // agile, babok, ieee, custom
+  order          Int               @default(0)  // For manual sorting
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
   features       Feature[]
-  specifications Specification[] // Direct specs (not under a feature)
+  specifications Specification[]   // Direct specs (not under a feature)
   experts        ProjectExpert[]
+  documents      ProjectDocument[]
 
   @@index([userId])
   @@index([organizationId])
   @@index([userId, order])
   @@index([organizationId, order])
+}
+
+// ProjectDocument: Generated project documentation
+model ProjectDocument {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  content   String   @db.Text // The markdown content
+  version   Int      @default(1)
+  status    String   @default("generating") // generating, complete, error
+  metadata  Json?    // Store workflow outputs, section breakdown
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 // ProjectExpert: Subject matter experts for BABOK projects

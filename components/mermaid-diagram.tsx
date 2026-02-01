@@ -32,7 +32,7 @@ const THEMES: Record<MermaidTheme, { bg: string; fg: string; accent?: string; mu
     accent: "#3B82F6",
     muted: "#666666",
     surface: "#F5F3EE",
-    border: "#E5E2DC",
+    border: "#E5E7EB", // Light gray border
   },
   "tokyo-night": {
     bg: "#1a1b26",
@@ -191,10 +191,19 @@ export function MermaidDiagram({ chart, className, theme = "default" }: MermaidD
         const svg = await renderMermaid(normalizedChart, themeConfig);
 
         // Sanitize the SVG output with DOMPurify
-        const cleanSvg = DOMPurify.sanitize(svg, {
+        let cleanSvg = DOMPurify.sanitize(svg, {
           USE_PROFILES: { svg: true, svgFilters: true },
           ADD_TAGS: ["foreignObject", "style"],
         });
+
+        // Post-process to make border subtle gray instead of thick dark
+        // Replace dark border strokes with light gray
+        cleanSvg = cleanSvg
+          .replace(/stroke="#1[aA][12][bB]26"/g, 'stroke="#E5E7EB"')
+          .replace(/stroke="#1a1b26"/gi, 'stroke="#E5E7EB"')
+          .replace(/stroke="#2[eE]3440"/g, 'stroke="#E5E7EB"')
+          .replace(/stroke-width="[89]"/g, 'stroke-width="1"')
+          .replace(/stroke-width="1[0-9]"/g, 'stroke-width="1"');
 
         setSanitizedSvg(cleanSvg);
         setError(null);
@@ -284,7 +293,7 @@ export function MermaidDiagram({ chart, className, theme = "default" }: MermaidD
       </div>
       <div
         ref={containerRef}
-        className={className}
+        className={`mermaid-svg-content overflow-x-auto ${className || ""}`}
         dangerouslySetInnerHTML={{ __html: sanitizedSvg }}
       />
     </div>

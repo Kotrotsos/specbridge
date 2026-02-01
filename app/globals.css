@@ -99,3 +99,15 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* Mermaid diagram styling */
+.mermaid-svg-content svg {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #E5E7EB !important;
+  border-radius: 8px;
+}
+
+.mermaid-container {
+  overflow-x: auto;
+}
