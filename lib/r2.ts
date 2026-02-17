@@ -126,7 +126,7 @@ export async function deleteFromR2(key: string): Promise<void> {
 }
 
 /**
- * Generate a unique storage key for a document
+ * Generate a unique storage key for a specification document
  * @param specificationId - The specification ID
  * @param fileName - The original file name
  */
@@ -137,6 +137,20 @@ export function generateStorageKey(
     const timestamp = Date.now();
     const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
     return `specifications/${specificationId}/${timestamp}-${sanitizedName}`;
+}
+
+/**
+ * Generate a unique storage key for a project source document
+ * @param projectId - The project ID
+ * @param fileName - The original file name
+ */
+export function generateProjectStorageKey(
+    projectId: string,
+    fileName: string
+): string {
+    const timestamp = Date.now();
+    const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+    return `projects/${projectId}/source-documents/${timestamp}-${sanitizedName}`;
 }
 
 /**

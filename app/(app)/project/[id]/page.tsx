@@ -18,17 +18,26 @@ import {
     AlertCircle,
     Maximize2,
     GripVertical,
+    Upload,
+    Sparkles,
+    GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { getProject, ProjectData } from "@/app/actions/projects";
-import { getProjectDocument, createProjectDocument, ProjectDocumentData } from "@/app/actions/documents";
+import { getProjectDocument, createProjectDocument, removeDocumentVisualizations, ProjectDocumentData } from "@/app/actions/documents";
 import { getMethodology, MethodologyId } from "@/config/methodologies";
 import { useProgress } from "@/components/ui/progress-bar";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
 import JSZip from "jszip";
+import { SourceDocumentUploadModal } from "@/components/project/source-document-upload-modal";
+import { ExtractionProgress } from "@/components/project/extraction-progress";
+import {
+    getProjectSourceDocuments,
+    ProjectSourceDocumentData,
+} from "@/app/actions/project-source-documents";
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -52,6 +61,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     const [isResizing, setIsResizing] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    // Source documents state
+    const [sourceDocuments, setSourceDocuments] = useState<ProjectSourceDocumentData[]>([]);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showExtractionModal, setShowExtractionModal] = useState(false);
+    const [selectedDocument, setSelectedDocument] = useState<ProjectSourceDocumentData | null>(null);
+
+    // Visualization state
+    const [isGeneratingViz, setIsGeneratingViz] = useState(false);
+    const [vizStatus, setVizStatus] = useState<string>("");
+    const [vizError, setVizError] = useState<string | null>(null);
+
     const navigateWithProgress = (path: string) => {
         startProgress();
         router.push(path);
@@ -68,6 +88,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 if (doc) {
                     setDocument(doc);
                 }
+
+                // Load source documents
+                const sourceDocs = await getProjectSourceDocuments(id);
+                setSourceDocuments(sourceDocs);
             } catch (error) {
                 console.error("Failed to load project:", error);
             } finally {
@@ -311,6 +335,89 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         newWindow.document.close();
     };
 
+    const hasVisualizations = !!(document?.metadata as Record<string, unknown>)?.visualizations;
+
+    const handleAddVisualizations = async () => {
+        if (!project || !document) return;
+
+        setIsGeneratingViz(true);
+        setVizStatus("Starting visualization analysis...");
+        setVizError(null);
+
+        try {
+            // If visualizations already exist, strip them first
+            if (hasVisualizations) {
+                const cleaned = await removeDocumentVisualizations(document.id);
+                if (cleaned) {
+                    setDocument(cleaned);
+                    setStreamedContent(cleaned.content);
+                }
+            }
+
+            const currentDoc = await getProjectDocument(project.id);
+            if (!currentDoc) throw new Error("Document not found");
+
+            const response = await fetch("/api/generate-visualizations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    projectId: project.id,
+                    documentId: currentDoc.id,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error("No response body");
+
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.startsWith("event: ")) {
+                        const eventType = line.slice(7);
+                        const dataLine = lines[i + 1];
+                        if (dataLine?.startsWith("data: ")) {
+                            const data = JSON.parse(dataLine.slice(6));
+
+                            if (eventType === "status") {
+                                setVizStatus(data.message);
+                            } else if (eventType === "complete") {
+                                setVizStatus("");
+                                const updatedDoc = await getProjectDocument(project.id);
+                                if (updatedDoc) {
+                                    setDocument(updatedDoc);
+                                    setStreamedContent(updatedDoc.content);
+                                }
+                            } else if (eventType === "error") {
+                                setVizError(data.message);
+                            }
+                            i++;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Visualization error:", error);
+            setVizError(error instanceof Error ? error.message : "Unknown error");
+        } finally {
+            setIsGeneratingViz(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="p-8">
@@ -388,6 +495,36 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                                     >
                                         <Settings className="h-5 w-5" />
                                     </button>
+                                    <button
+                                        onClick={() => setShowUploadModal(true)}
+                                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                                        title="Upload Source Document"
+                                    >
+                                        <Upload className="h-5 w-5" />
+                                    </button>
+                                    {sourceDocuments.some(
+                                        (doc) =>
+                                            doc.status === "extracted" &&
+                                            (doc.extractionStatus === "pending" || doc.extractionStatus === "complete")
+                                    ) && (
+                                        <button
+                                            onClick={() => {
+                                                const doc = sourceDocuments.find(
+                                                    (d) =>
+                                                        d.status === "extracted" &&
+                                                        (d.extractionStatus === "pending" || d.extractionStatus === "complete")
+                                                );
+                                                if (doc) {
+                                                    setSelectedDocument(doc);
+                                                    setShowExtractionModal(true);
+                                                }
+                                            }}
+                                            className="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-md transition-colors"
+                                            title="Extract Features from Document"
+                                        >
+                                            <Sparkles className="h-5 w-5" />
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => navigateWithProgress(`/new/specification?projectId=${project.id}`)}
                                         className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
@@ -521,7 +658,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                             )}
                         </div>
                         <div className="flex items-center gap-1">
-                            {displayContent && !isGenerating && (
+                            {displayContent && !isGenerating && !isGeneratingViz && (
                                 <>
                                     <button
                                         onClick={handleOpenFullScreen}
@@ -536,6 +673,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                                         title="Download as ZIP"
                                     >
                                         <Download className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={handleAddVisualizations}
+                                        className={`p-1.5 rounded transition-colors ${
+                                            hasVisualizations
+                                                ? "text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                        }`}
+                                        title={hasVisualizations ? "Refresh Visualizations" : "Add Visualizations"}
+                                    >
+                                        <GitBranch className="h-4 w-4" />
                                     </button>
                                     <button
                                         onClick={handleGenerateDocument}
@@ -582,6 +730,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                                 <div className="flex items-center gap-3">
                                     <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
                                     <span className="text-sm text-blue-700">{generationStatus}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {isGeneratingViz && (
+                            <div className="p-4 bg-purple-50 border-b border-purple-100">
+                                <div className="flex items-center gap-3">
+                                    <Loader2 className="h-5 w-5 text-purple-600 animate-spin" />
+                                    <span className="text-sm text-purple-700">{vizStatus}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {vizError && (
+                            <div className="p-4 bg-red-50 border-b border-red-100">
+                                <div className="flex items-center gap-3">
+                                    <AlertCircle className="h-5 w-5 text-red-600" />
+                                    <span className="text-sm text-red-700">{vizError}</span>
                                 </div>
                             </div>
                         )}
@@ -640,6 +806,40 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* Source Document Upload Modal */}
+            <SourceDocumentUploadModal
+                isOpen={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                projectId={id}
+                onUploadComplete={async () => {
+                    // Refresh source documents - user can click Sparkles icon to start extraction
+                    const updatedDocs = await getProjectSourceDocuments(id);
+                    setSourceDocuments(updatedDocs);
+                }}
+            />
+
+            {/* Extraction Progress Modal */}
+            {selectedDocument && (
+                <ExtractionProgress
+                    isOpen={showExtractionModal}
+                    onClose={() => {
+                        setShowExtractionModal(false);
+                        setSelectedDocument(null);
+                    }}
+                    document={selectedDocument}
+                    onExtractionComplete={async () => {
+                        // Refresh source documents
+                        const updatedDocs = await getProjectSourceDocuments(id);
+                        setSourceDocuments(updatedDocs);
+                    }}
+                    onContentApplied={async () => {
+                        // Refresh the project to show new features/specs
+                        const data = await getProject(id);
+                        setProject(data);
+                    }}
+                />
             )}
         </div>
     );

@@ -232,6 +232,71 @@ export async function updateProjectDocument(
     });
 }
 
+// Remove visualizations from a document (strips mermaid blocks added by the visualization feature)
+export async function removeDocumentVisualizations(documentId: string): Promise<ProjectDocumentData | null> {
+    const { userId, orgId } = await auth();
+
+    if (!userId) {
+        throw new Error("Unauthorized");
+    }
+
+    const document = await prisma.projectDocument.findUnique({
+        where: { id: documentId },
+        include: { project: true },
+    });
+
+    if (!document) {
+        throw new Error("Document not found");
+    }
+
+    const hasAccess =
+        document.project.userId === userId ||
+        (orgId && document.project.organizationId === orgId);
+
+    if (!hasAccess) {
+        throw new Error("Unauthorized");
+    }
+
+    // Remove visualization blocks: ---\n\n**Title**\n\n```mermaid\n...\n```
+    let content = document.content;
+    content = content.replace(
+        /\n---\n\n\*\*[^*]+\*\*\n\n```mermaid\n[\s\S]*?```\n/g,
+        ""
+    );
+
+    // Remove trailing "Visualizations" appendix section if it exists
+    content = content.replace(
+        /\n\n---\n\n## Visualizations\n[\s\S]*$/,
+        ""
+    );
+
+    // Update metadata to remove visualization info
+    const existingMetadata = (document.metadata as Record<string, unknown>) || {};
+    const { visualizations: _, ...restMetadata } = existingMetadata;
+
+    const updated = await prisma.projectDocument.update({
+        where: { id: documentId },
+        data: {
+            content,
+            metadata: JSON.parse(JSON.stringify(restMetadata)),
+        },
+    });
+
+    revalidatePath(`/project/${document.projectId}`);
+
+    return {
+        id: updated.id,
+        projectId: updated.projectId,
+        content: updated.content,
+        version: updated.version,
+        status: updated.status,
+        metadata: updated.metadata as Record<string, unknown> | null,
+        error: updated.error,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+    };
+}
+
 // Delete a document
 export async function deleteProjectDocument(documentId: string): Promise<void> {
     const { userId, orgId } = await auth();
