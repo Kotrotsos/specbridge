@@ -35,7 +35,8 @@
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.2.2",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "resend": "^6.9.2"
   },
   "devDependencies": {
     "@types/dompurify": "^3.0.5",

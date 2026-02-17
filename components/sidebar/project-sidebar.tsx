@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText } from "lucide-react";
+import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, Bot } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useProjects } from "@/hooks/use-projects";
 import { updateProject, deleteProject, reorderProjects } from "@/app/actions/projects";
@@ -293,6 +293,24 @@ export function ProjectSidebar() {
                     </button>
                 )}
             </div>
+
+            {/* Agents Link */}
+            {userId && (
+                <div className="px-2 pt-2">
+                    <button
+                        onClick={() => { startProgress(); router.push("/agents"); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                            pathname?.startsWith("/agents")
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        }`}
+                    >
+                        <Bot className="w-4 h-4" />
+                        Agents
+                        <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">Beta</span>
+                    </button>
+                </div>
+            )}
 
             {/* Project List */}
             <div className="flex-1 overflow-y-auto p-2">

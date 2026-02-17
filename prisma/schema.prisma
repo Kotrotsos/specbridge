@@ -221,3 +221,85 @@ model Artifact {
 
   @@index([specificationId])
 }
+
+// RequirementsAgent: Customer-facing AI agent configured by owner
+model RequirementsAgent {
+  id              String         @id @default(cuid())
+  userId          String
+  organizationId  String?
+  name            String
+  goal            String         @db.Text
+  topics          Json           // [{id, name, description}]
+  flexibility     String         @default("moderate") // strict|moderate|flexible
+  personality     String         @default("professional") // professional|friendly|casual|technical
+  welcomeMessage  String?        @db.Text
+  status          String         @default("draft") // draft|active|paused|archived
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  invites         AgentInvite[]
+  sessions        AgentSession[]
+
+  @@index([userId])
+  @@index([organizationId])
+}
+
+// AgentInvite: Email-gated invite for customer access
+model AgentInvite {
+  id               String            @id @default(cuid())
+  agentId          String
+  agent            RequirementsAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  email            String
+  name             String?
+  token            String            @unique
+  status           String            @default("pending") // pending|verified|expired|revoked
+  verificationCode String?
+  codeExpiresAt    DateTime?
+  verifiedAt       DateTime?
+  sentAt           DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  sessions         AgentSession[]
+
+  @@index([agentId])
+  @@index([token])
+  @@unique([agentId, email])
+}
+
+// AgentSession: Customer chat session with the agent
+model AgentSession {
+  id              String            @id @default(cuid())
+  agentId         String
+  agent           RequirementsAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  inviteId        String
+  invite          AgentInvite       @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  customerEmail   String
+  customerName    String?
+  status          String            @default("active") // active|completed|abandoned
+  topicsCovered   Json?             // [{topicId, status, confidence}]
+  analysis        Json?             // {requirements, decisions, gaps, overallConfidence}
+  summary         String?           @db.Text
+  startedAt       DateTime          @default(now())
+  lastActivityAt  DateTime          @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  messages        AgentMessage[]
+
+  @@index([agentId])
+  @@index([inviteId])
+  @@index([status])
+}
+
+// AgentMessage: Chat messages in agent sessions
+model AgentMessage {
+  id               String       @id @default(cuid())
+  sessionId        String
+  session          AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role             String       // assistant|user
+  content          String       @db.Text
+  analysisSnapshot Json?        // Analysis state after this message
+  timestamp        DateTime     @default(now())
+
+  @@index([sessionId])
+  @@index([sessionId, timestamp])
+}
