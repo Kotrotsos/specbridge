@@ -51,7 +51,7 @@ export default function AgentsPage() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 mb-6 text-sm text-foreground-secondary">
+        <div className="flex items-center gap-2 mt-2 mb-6 text-sm text-foreground-secondary">
           <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-xs font-medium">Beta</span>
           <span>Send AI-powered requirement gathering agents to your customers via email</span>
         </div>

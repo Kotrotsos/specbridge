@@ -185,29 +185,29 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Config Summary */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4 mt-8 mb-8">
           <Card>
-            <CardContent className="p-4">
+            <div className="p-5">
               <p className="text-xs text-foreground-muted mb-1">Topics</p>
               <p className="text-lg font-semibold">{topics.length}</p>
-            </CardContent>
+            </div>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <div className="p-5">
               <p className="text-xs text-foreground-muted mb-1">Flexibility</p>
               <p className="text-sm font-medium capitalize">{agent.flexibility}</p>
-            </CardContent>
+            </div>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <div className="p-5">
               <p className="text-xs text-foreground-muted mb-1">Personality</p>
               <p className="text-sm font-medium capitalize">{agent.personality}</p>
-            </CardContent>
+            </div>
           </Card>
         </div>
 
         {/* Topics List */}
-        <div className="mb-8">
+        <div className="mt-8 mb-8">
           <h2 className="text-lg font-medium text-foreground mb-3">Required Topics</h2>
           <div className="space-y-2">
             {topics.map((topic, i) => (
@@ -225,7 +225,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Invite Section */}
-        <div className="mb-8">
+        <div className="mt-8 mb-8">
           <h2 className="text-lg font-medium text-foreground mb-3">
             <Users className="h-5 w-5 inline mr-2" />
             Invites
@@ -320,7 +320,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Sessions */}
-        <div>
+        <div className="mt-8">
           <h2 className="text-lg font-medium text-foreground mb-3">
             <MessageSquare className="h-5 w-5 inline mr-2" />
             Sessions
