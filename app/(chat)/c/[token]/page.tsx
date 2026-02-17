@@ -282,14 +282,31 @@ export default function CustomerChatPage({ params }: { params: Promise<{ token: 
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map(msg => (
-          <MessageBubble
-            key={msg.id}
-            role={msg.role as "assistant" | "user"}
-            content={msg.content}
-            timestamp={new Date(msg.timestamp)}
-          />
-        ))}
+        {messages.map(msg => {
+          // Hide empty assistant message while streaming (we show typing indicator instead)
+          if (msg.role === "assistant" && !msg.content && isStreaming) return null;
+          return (
+            <MessageBubble
+              key={msg.id}
+              role={msg.role as "assistant" | "user"}
+              content={msg.content}
+              timestamp={new Date(msg.timestamp)}
+            />
+          );
+        })}
+        {isStreaming && messages[messages.length - 1]?.content === "" && (
+          <div className="flex justify-start">
+            <div className="bg-background-sidebar rounded-[8px] px-4 py-3 max-w-[85%]">
+              <div className="mb-1 text-xs font-medium text-foreground-muted">SpecBridge</div>
+              <div className="flex items-center gap-1.5 py-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-foreground-muted animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-foreground-muted animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-foreground-muted animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+              <p className="text-xs text-foreground-muted mt-1">Processing your response...</p>
+            </div>
+          </div>
+        )}
         <div ref={chatEndRef} />
       </div>
 
