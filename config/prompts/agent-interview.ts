@@ -88,11 +88,17 @@ export function buildAgentWelcomeMessage(config: AgentConfig): string {
     return config.welcomeMessage;
   }
 
+  // Pick the first topic to ask about immediately
+  const firstTopic = config.topics[0];
+  const topicPrompt = firstTopic
+    ? `\n\nTo start, could you tell me about your needs regarding **${firstTopic.name}**?${firstTopic.description ? ` Specifically, ${firstTopic.description.charAt(0).toLowerCase() + firstTopic.description.slice(1)}` : ""}`
+    : "\n\nTo start, could you give me a high-level overview of what you're looking for?";
+
   const greetings: Record<string, string> = {
-    professional: `Hello, and thank you for taking the time to speak with me today. I'm here to help gather your requirements for ${config.name}. I'll be asking you some questions to understand your needs. Let's get started.`,
-    friendly: `Hi there! Thanks for chatting with me today. I'm here to learn about what you need for ${config.name}. I'll ask some questions to make sure we capture everything. Ready to dive in?`,
-    casual: `Hey! Thanks for taking the time. I'm going to ask you some questions about ${config.name} so we can figure out exactly what you need. Sound good?`,
-    technical: `Hello. I'll be conducting a requirements gathering session for ${config.name}. I'll ask targeted questions about specific aspects of your needs. Let's begin.`,
+    professional: `Hello, and thank you for taking the time to speak with me today. I'm here to help gather your requirements for ${config.name}. I'll walk you through a few key areas to make sure we capture everything.${topicPrompt}`,
+    friendly: `Hi there! Thanks so much for chatting with me today. I'm here to learn about what you need for ${config.name}, and I'll guide you through a few topics to make sure we don't miss anything.${topicPrompt}`,
+    casual: `Hey! Thanks for taking the time. I'll walk you through a few things about ${config.name} to make sure we get everything right.${topicPrompt}`,
+    technical: `Hello. I'll be conducting a structured requirements gathering session for ${config.name}. I'll cover several areas in detail.${topicPrompt}`,
   };
 
   return greetings[config.personality] || greetings.professional;

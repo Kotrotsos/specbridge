@@ -3,7 +3,7 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle, Circle, AlertCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { MessageBubble } from "@/components/chat/message-bubble";
 import { useAgentSessionMonitor } from "@/hooks/use-agent-session-monitor";
 import { useProgress } from "@/components/ui/progress-bar";
@@ -172,7 +172,7 @@ export default function SessionMonitorPage({
                 <div className="space-y-2">
                   {requirements.map((req) => (
                     <Card key={req.id}>
-                      <CardContent className="p-3">
+                      <div className="p-3">
                         <p className="text-sm text-foreground">{req.description}</p>
                         {req.sourceQuote && (
                           <p className="text-xs text-foreground-muted mt-1 italic">
@@ -186,7 +186,7 @@ export default function SessionMonitorPage({
                         }`}>
                           {req.priority}
                         </span>
-                      </CardContent>
+                      </div>
                     </Card>
                   ))}
                 </div>

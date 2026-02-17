@@ -88,7 +88,7 @@ export default function AgentsPage() {
                   className="cursor-pointer transition-all hover:border-foreground-muted hover:shadow-sm"
                   onClick={() => navigate(`/agents/${agent.id}`)}
                 >
-                  <CardContent className="p-5">
+                  <div className="px-5 py-5">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
@@ -117,7 +117,7 @@ export default function AgentsPage() {
                         </div>
                       </div>
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
               );
             })}

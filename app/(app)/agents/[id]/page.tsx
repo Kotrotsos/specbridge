@@ -338,7 +338,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                     className="cursor-pointer transition-all hover:border-foreground-muted hover:shadow-sm"
                     onClick={() => { startProgress(); router.push(`/agents/${id}/session/${session.id}`); }}
                   >
-                    <CardContent className="p-4">
+                    <div className="px-5 py-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-foreground">
@@ -358,7 +358,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                           <ExternalLink className="h-3.5 w-3.5 text-foreground-muted" />
                         </div>
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 );
               })}

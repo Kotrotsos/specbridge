@@ -305,25 +305,44 @@ export async function createInvite(data: {
   });
   if (!agent) throw new Error("Agent not found");
 
-  const token = crypto.randomBytes(32).toString("hex");
+  const email = data.email.toLowerCase().trim();
 
-  const invite = await prisma.agentInvite.create({
-    data: {
-      agentId: data.agentId,
-      email: data.email.toLowerCase().trim(),
-      name: data.name ?? null,
-      token,
-      status: "pending",
-    },
+  // Check for existing invite, resend if found
+  const existing = await prisma.agentInvite.findUnique({
+    where: { agentId_email: { agentId: data.agentId, email } },
   });
+
+  let invite;
+  if (existing && existing.status !== "revoked") {
+    // Re-send existing invite
+    invite = existing;
+  } else if (existing && existing.status === "revoked") {
+    // Reset revoked invite with new token
+    const token = crypto.randomBytes(32).toString("hex");
+    invite = await prisma.agentInvite.update({
+      where: { id: existing.id },
+      data: { token, status: "pending", sentAt: new Date() },
+    });
+  } else {
+    const token = crypto.randomBytes(32).toString("hex");
+    invite = await prisma.agentInvite.create({
+      data: {
+        agentId: data.agentId,
+        email,
+        name: data.name ?? null,
+        token,
+        status: "pending",
+      },
+    });
+  }
 
   // Send invite email
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://specbridge.ai";
-  const inviteUrl = `${baseUrl}/c/${token}`;
+  const inviteUrl = `${baseUrl}/c/${invite.token}`;
 
   await sendInviteEmail({
     to: invite.email,
-    customerName: invite.name ?? undefined,
+    customerName: invite.name ?? data.name ?? undefined,
     agentName: agent.name,
     inviteUrl,
   });
